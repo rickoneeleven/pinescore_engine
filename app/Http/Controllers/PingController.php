@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Jobs\PingJob;
-use App\Ips;
 use App\Ping_ip_table;
 
 class PingController extends Controller
@@ -27,12 +26,11 @@ class PingController extends Controller
         //q: are we going to run both online and offline node checks in the same controller and class?
         //a: learn how php queues work first
 
-        $Ips = Ips::all();
         $Ping_ip_table = Ping_ip_table::all();
 
-        foreach ($Ping_ip_table as $node_being_monitored)
+        foreach ($Ping_ip_table as $Ping_ip_table_row)
         {
-            dispatch(new PingJob($node_being_monitored));
+            dispatch(new PingJob($Ping_ip_table_row));
         }
 
         echo "Finished";

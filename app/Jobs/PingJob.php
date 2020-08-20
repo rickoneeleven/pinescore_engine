@@ -12,16 +12,16 @@ class PingJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    protected $node_being_monitored;
+    protected $Ping_ip_table_row;
 
     /**
      * Create a new job instance.
      *
      * @return void
      */
-    public function __construct($node_being_monitored)
+    public function __construct($Ping_ip_table_row)
     {
-        $this->node_being_monitored = $node_being_monitored;
+        $this->Ping_ip_table_row = $Ping_ip_table_row;
     }
 
     /**
@@ -31,13 +31,13 @@ class PingJob implements ShouldQueue
      */
     public function handle()
     {
-            $ha = $this->pingv2($this->node_being_monitored->ip);
-            logger("pinging " . $this->node_being_monitored->ip . " ".$ha."ms");
+            $ha = $this->pingv2($this->Ping_ip_table_row->ip);
+            logger("pinging " . $this->Ping_ip_table_row->ip . " ".$ha."ms");
     }
 
     public function dave() {
-        //$last_result = $this->icmpmodel->lastResult($row->ip);
-        //$last_result_result = $this->icmpmodel->lastResultResult($row->ip);
+        $last_result = $this->icmpmodel->lastResult($row->ip);
+        $last_result_result = $this->icmpmodel->lastResultResult($row->ip);
 
         $ping_ms = $this->techbits_model->pingv2($row->ip); //up or down        
         $result = $this->icmpmodel->onOrOff($ping_ms); //convert to Online or Offline word from number
