@@ -26,14 +26,14 @@ class PingController extends Controller
         //q: are we going to run both online and offline node checks in the same controller and class?
         //a: learn how php queues work first
 
-        $Ping_ip_table = Ping_ip_table::all();
+        $Ping_ip_table = Ping_ip_table::all()->unique('ip');
 
         foreach ($Ping_ip_table as $Ping_ip_table_row)
         {
             dispatch(new PingJob($Ping_ip_table_row));
         }
 
-        echo "Finished";
+        echo "Finished sending ".count($Ping_ip_table)." nodes for processesing";
 
     }
 
