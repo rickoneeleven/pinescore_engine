@@ -14,16 +14,16 @@ class PingJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    protected $Ping_ip_table_row;
+    protected $ping_ip_table_row;
 
     /**
      * Create a new job instance.
      *
      * @return void
      */
-    public function __construct($Ping_ip_table_row)
+    public function __construct($ping_ip_table_row)
     {
-        $this->Ping_ip_table_row = $Ping_ip_table_row;
+        $this->ping_ip_table_row = $ping_ip_table_row;
     }
 
     /**
@@ -33,18 +33,18 @@ class PingJob implements ShouldQueue
      */
     public function handle()
     {
-        $ping_ms = $this->pingv2($this->Ping_ip_table_row->ip);
+        $ping_ms = $this->pingv2($this->ping_ip_table_row->ip);
         $online_or_offline = $this->onlineOrOffline($ping_ms);
-        logger("pinging " . $this->Ping_ip_table_row->ip . " ".$ping_ms."ms | ".$online_or_offline);
+        //logger("pinging " . $this->ping_ip_table_row->ip . " ".$ping_ms."ms | ".$online_or_offline);
 
 
 
 
-        if($online_or_offline != $this->Ping_ip_table_row->last_email_status) {
+        if($online_or_offline != $this->ping_ip_table_row->last_email_status) {
             $change = 1;
-            logger("CHANGE");
+            //logger("CHANGE");
             $stat = new stat;
-            $stat->ip = $this->Ping_ip_table_row->ip;
+            $stat->ip = $this->ping_ip_table_row->ip;
             $stat->datetime = date('Y-m-d H:i:s');
             $stat->score = -1;
             $stat->save();
@@ -54,13 +54,19 @@ class PingJob implements ShouldQueue
 
 
         $ping_result_table = new ping_result_table;
-        $ping_result_table->ip = $this->Ping_ip_table_row->ip;
+        $ping_result_table->ip = $this->ping_ip_table_row->ip;
         $ping_result_table->datetime =date('Y-m-d H:i:s');
         $ping_result_table->ms = $ping_ms;
         $ping_result_table->result = $online_or_offline;
         $ping_result_table->change = $change;
         $ping_result_table->email_sent = 0;
         $ping_result_table->save();
+
+
+
+
+        //query ping results table to update average in ping_ip_table
+
 
     
     }

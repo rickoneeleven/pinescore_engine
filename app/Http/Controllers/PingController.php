@@ -4,12 +4,13 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Jobs\PingJob;
-use App\Ping_ip_table;
+use App\Jobs\SmoothenLastMs;
+use App\ping_ip_table;
 
 class PingController extends Controller
 {
     public function index() {
-     
+    
         //protect class from only being able to be ran by certain IP
 
         //next: work through PingJob
@@ -19,20 +20,22 @@ class PingController extends Controller
         $timeleft = $end - strtotime('now');
         $we_managed_to_cycle_x_times = 0;
         
-        $Ping_ip_table = Ping_ip_table::all()->unique('ip');
+        $ping_ip_table = ping_ip_table::all()->unique('ip');
 
-        Logger("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ Processing ".count($Ping_ip_table)." nodes");
+        Logger("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ Processing ".count($ping_ip_table)." nodes");
 
         while($timeleft > 10)
         {
             $queue_size = \Queue::size("default");
 
-            Logger("-------------------------------------- Queue size currently: $queue_size");
+            //Logger("-------------------------------------- Queue size currently: $queue_size");
 
             if($queue_size < 1) {
-                foreach ($Ping_ip_table as $Ping_ip_table_row)
+                foreach ($ping_ip_table as $ping_ip_table_row)
                 {
-                    dispatch(new PingJob($Ping_ip_table_row));
+                    dispatch(new PingJob($ping_ip_table_row));
+                    dispatch(new SmoothenLastMs($ping_ip_table_row));
+                    //die("1 bomb");
                 }
                 $we_managed_to_cycle_x_times++;
             }
