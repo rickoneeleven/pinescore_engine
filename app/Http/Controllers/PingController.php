@@ -9,33 +9,38 @@ use App\Ping_ip_table;
 class PingController extends Controller
 {
     public function index() {
-
-        //print out novascore ping controller code and write out in english each step it's doing here, for example
-            //getting a list of all nodes
-            //pinging each node and updating DB with status
-        
-
-        //yeah so i'd like a cycle for offline nodes, and one for on. and offline nodes includes those that were on, and have just dropped even one ping. because
-            //i don't need that shit tieing up the online nodes cycles if they (or a number of them) are begging to fail
-        
+     
         //protect class from only being able to be ran by certain IP
-        //get a list of all online/offline IPs depending on which ones i'm checking
-        //check to see if they are pinging, and do all the assocaited updating and what not [THIS IS THE BIG TASK, DO WE NEED TO BReAK THIS DOWN???]
 
-        //questions111
-        //q: are we going to run both online and offline node checks in the same controller and class?
-        //a: learn how php queues work first
+        //next: work through PingJob
 
+        $start = strtotime('now');
+        $end = $start + 58;
+        $timeleft = $end - strtotime('now');
+        $we_managed_to_cycle_x_times = 0;
+        
         $Ping_ip_table = Ping_ip_table::all()->unique('ip');
 
-        foreach ($Ping_ip_table as $Ping_ip_table_row)
+        Logger("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ Processing ".count($Ping_ip_table)." nodes");
+
+        while($timeleft > 10)
         {
-            dispatch(new PingJob($Ping_ip_table_row));
+            $queue_size = \Queue::size("default");
+
+            Logger("-------------------------------------- Queue size currently: $queue_size");
+
+            if($queue_size < 1) {
+                foreach ($Ping_ip_table as $Ping_ip_table_row)
+                {
+                    dispatch(new PingJob($Ping_ip_table_row));
+                }
+                $we_managed_to_cycle_x_times++;
+            }
+            sleep(9);
+            $timeleft = $end - strtotime('now');
         }
 
-        echo "Finished sending ".count($Ping_ip_table)." nodes for processesing";
-
+        Logger("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx We managed $we_managed_to_cycle_x_times ping cycles.");
     }
-
     
 }

@@ -8,6 +8,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use App\stat;
+use App\ping_result_table;
 
 class PingJob implements ShouldQueue
 {
@@ -38,6 +39,7 @@ class PingJob implements ShouldQueue
 
 
 
+
         if($online_or_offline != $this->Ping_ip_table_row->last_email_status) {
             $change = 1;
             logger("CHANGE");
@@ -46,27 +48,27 @@ class PingJob implements ShouldQueue
             $stat->datetime = date('Y-m-d H:i:s');
             $stat->score = -1;
             $stat->save();
-            //$this->lemon->score($row->ip);
         } else {
             $change = 0;
         }
+
+
+        $ping_result_table = new ping_result_table;
+        $ping_result_table->ip = $this->Ping_ip_table_row->ip;
+        $ping_result_table->datetime =date('Y-m-d H:i:s');
+        $ping_result_table->ms = $ping_ms;
+        $ping_result_table->result = $online_or_offline;
+        $ping_result_table->change = $change;
+        $ping_result_table->email_sent = 0;
+        $ping_result_table->save();
+
+    
     }
 
     public function dave() {
         //$last_result = $this->icmpmodel->lastResult($row->ip);
         //$last_result_result = $this->icmpmodel->lastResultResult($row->ip);
 
-
-
-        $data_db = array(
-            'ip' => $row->ip ,
-            'datetime' => date('Y-m-d H:i:s'),
-            'ms' => $ping_ms,
-            'result' => $online_or_offline,
-            'change' => $change,
-            'email_sent' => 0,
-        );
-        $this->db->insert('ping_result_table', $data_db); //insert into big results table
 /////////////////////////////////////////////////////////////////////////////
         $data_static = array( //to stop the users/auto refresh table talking to results table, we store it here
             'last_ran' => date('Y-m-d H:i:s'),
