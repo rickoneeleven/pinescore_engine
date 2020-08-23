@@ -18,3 +18,4 @@ use Illuminate\Support\Facades\Route;
 //});
 
 Route::get('/', 'PingController@index');
+Route::get('/party', 'partytest@index');

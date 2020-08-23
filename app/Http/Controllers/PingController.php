@@ -13,7 +13,7 @@ class PingController extends Controller
     
         //protect class from only being able to be ran by certain IP
 
-        //next: work through PingJob
+        //next: rename smoothenlastms model
 
         $start = strtotime('now');
         $end = $start + 58;

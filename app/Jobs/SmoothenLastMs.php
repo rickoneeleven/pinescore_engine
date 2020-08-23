@@ -9,6 +9,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use App\ping_ip_table;
 use App\ping_result_table;
+use App\other;
 
 class SmoothenLastMs implements ShouldQueue
 {
@@ -41,6 +42,12 @@ class SmoothenLastMs implements ShouldQueue
             //on just the initial row passed to class
             if($ping_ip_table_row->last_email_status == "Online") $ping_ip_table_row->last_online_toggle = date('Y-m-d H:i:s'); //this is
             //used to calulate how long nodes have been online, and change table row colours, and help filter nodes over 72 hours.
+            $lta_difference_algo = $this->ltaCurrentMsDifference(array(
+                'average_longterm_ms'   => $ping_ip_table_row->average_longterm_ms,
+                'last_ms'               => $last_ms,
+            ));
+
+            $ping_ip_table_row->lta_difference_algo = $lta_difference_algo;
             $ping_ip_table_row->last_ran = date('Y-m-d H:i:s');
             $ping_ip_table_row->last_ms = $last_ms;
             $ping_ip_table_row->save();
@@ -77,4 +84,42 @@ class SmoothenLastMs implements ShouldQueue
         }
         return $array;
     }
+
+    private function ltaCurrentMsDifference($array) {
+        $percent_n_ms_diff = $this->getPercentAndMsForDiff();
+        $difference_algo = 0;
+        $difference_percent = 0;
+        if(!$array['average_longterm_ms']) return $difference_algo;
+
+        $difference_ms = $array['average_longterm_ms'] - $array['last_ms'];
+        $difference_percent = round((1 - $array['last_ms']/$array['average_longterm_ms'])*100,0);
+        if($difference_ms != 0 && $difference_ms < 0) {
+            if($difference_ms <= "-".$percent_n_ms_diff['ms_diff'] && $difference_percent < $percent_n_ms_diff['percent_diff_slower']) { //slower than usual response times
+                $difference_algo = $difference_percent;
+            }
+        } else {
+            if($difference_ms >= $percent_n_ms_diff['ms_diff'] && $difference_percent > $percent_n_ms_diff['percent_diff_quicker']) { //faster than usual response times
+                $difference_algo = "-".$difference_percent;
+            }
+        }
+        return $difference_algo;
+    }
+
+    private function getPercentAndMsForDiff() {
+        $returnArray = array();
+
+        $otherTable_percent_quicker = other::find(1);
+        $returnArray['percent_diff_quicker'] = $otherTable_percent_quicker['value'];
+
+        $otherTable_percent_slower = other::find(9);
+        $returnArray['percent_diff_slower'] = $otherTable_percent_slower['value'];
+
+        $otherTable_ms = other::find(2);
+        $returnArray['ms_diff'] = $otherTable_ms['value'];
+    
+        return $returnArray;
+    }
+
 }
+
+

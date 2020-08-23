@@ -63,26 +63,10 @@ class PingJob implements ShouldQueue
         $ping_result_table->save();
 
 
-
-
-        //query ping results table to update average in ping_ip_table
-
-
-    
     }
 
     public function dave() {
-        //$last_result = $this->icmpmodel->lastResult($row->ip);
-        //$last_result_result = $this->icmpmodel->lastResultResult($row->ip);
-
-/////////////////////////////////////////////////////////////////////////////
-        $arrayForAlgo = array(
-                'average_longterm_ms'   => $row->average_longterm_ms,
-            );
-        $lta_difference_algo = $this->average30days_model->ltaCurrentMsDifference($arrayForAlgo);
-        $this->db->where('ip', $row->ip);
-        $this->db->update('ping_ip_table', array('lta_difference_algo' => $lta_difference_algo));
-/////////////////////////////////////////////////////////////////////////////
+        $last_result = $this->icmpmodel->lastResult($row->ip);
 
         foreach($last_result as $last_result) {
             $this->hasStatusChanged($last_result, $data_db, $row);
