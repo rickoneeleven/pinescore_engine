@@ -36,7 +36,11 @@ class SmoothenLastMs implements ShouldQueue
         $last_ms = $this->getAverageOfLastXpings($this->ping_ip_table_row->ip);
         $ping_ip_table = ping_ip_table::where('ip', $this->ping_ip_table_row->ip)->get();
 
-        foreach($ping_ip_table as $ping_ip_table_row) {
+        foreach($ping_ip_table as $ping_ip_table_row) { //we have to do this foreach, as the get() command above does not allow
+            //save() for multiple returns. and we need to update each row that has this ip, even though we can just do the initial calculation
+            //on just the initial row passed to class
+            if($ping_ip_table_row->last_email_status == "Online") $ping_ip_table_row->last_online_toggle = date('Y-m-d H:i:s'); //this is
+            //used to calulate how long nodes have been online, and change table row colours, and help filter nodes over 72 hours.
             $ping_ip_table_row->last_ran = date('Y-m-d H:i:s');
             $ping_ip_table_row->last_ms = $last_ms;
             $ping_ip_table_row->save();

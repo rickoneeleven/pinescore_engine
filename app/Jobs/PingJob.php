@@ -76,24 +76,7 @@ class PingJob implements ShouldQueue
         //$last_result_result = $this->icmpmodel->lastResultResult($row->ip);
 
 /////////////////////////////////////////////////////////////////////////////
-        $data_static = array( //to stop the users/auto refresh table talking to results table, we store it here
-            'last_ran' => date('Y-m-d H:i:s'),
-            'last_ms' => $last_result_result['average']
-        );
-        $this->db->where('ip', $row->ip);
-        $this->db->update('ping_ip_table', $data_static); //insert into quick table
-/////////////////////////////////////////////////////////////////////////////
-
-        if($data_db['result']=="Online") { //update last online date toggle so we can filter for stuff that is offline with a 72hour+ online toggle and then it can be hidden 
-            $data2 = array( //update table status
-                'last_online_toggle' => date('Y-m-d H:i:s'),
-            );
-            $this->db->where('ip', $row->ip);
-            $this->db->update('ping_ip_table', $data2); 
-/////////////////////////////////////////////////////////////////////////////
-        }
         $arrayForAlgo = array(
-                'last_ms'               => $last_result_result['average'],
                 'average_longterm_ms'   => $row->average_longterm_ms,
             );
         $lta_difference_algo = $this->average30days_model->ltaCurrentMsDifference($arrayForAlgo);
