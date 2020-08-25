@@ -1,19 +1,49 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Console\Commands;
 
-use Illuminate\Http\Request;
+use Illuminate\Console\Command;
 use App\Jobs\PingJob;
 use App\Jobs\PingJobDribblyBits;
 use App\ping_ip_table;
 
-class PingController extends Controller
+class PingCommand extends Command
 {
-    public function index() {
-    
+    /**
+     * The name and signature of the console command.
+     *
+     * @var string
+     */
+    protected $signature = 'command:PingCommand';
+
+    /**
+     * The console command description.
+     *
+     * @var string
+     */
+    protected $description = 'the main engine behind pinescore, pings all nodes and updates database';
+
+    /**
+     * Create a new command instance.
+     *
+     * @return void
+     */
+    public function __construct()
+    {
+        parent::__construct();
+    }
+
+    /**
+     * Execute the console command.
+     *
+     * @return int
+     */
+    public function handle()
+    {
         //protect class from only being able to be ran by certain IP
 
         //next: 
+        //:watch the artisan commands video
         //:get artisan setup to run crons and run pingcontroller (with less logging or a way logs clean out each time?)
         //:finish transfering dave function in PingJob
 
@@ -47,5 +77,4 @@ class PingController extends Controller
 
         Logger("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx We managed $we_managed_to_cycle_x_times ping cycles.");
     }
-    
 }
