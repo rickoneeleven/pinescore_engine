@@ -11,7 +11,7 @@ use App\ping_ip_table;
 use App\ping_result_table;
 use App\other;
 
-class SmoothenLastMs implements ShouldQueue
+class PingJobDribblyBits implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 

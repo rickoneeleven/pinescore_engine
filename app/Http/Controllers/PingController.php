@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Jobs\PingJob;
-use App\Jobs\SmoothenLastMs;
+use App\Jobs\PingJobDribblyBits;
 use App\ping_ip_table;
 
 class PingController extends Controller
@@ -13,7 +13,9 @@ class PingController extends Controller
     
         //protect class from only being able to be ran by certain IP
 
-        //next: rename smoothenlastms model
+        //next: 
+        //:get artisan setup to run crons and run pingcontroller (with less logging or a way logs clean out each time?)
+        //:finish transfering dave function in PingJob
 
         $start = strtotime('now');
         $end = $start + 58;
@@ -34,7 +36,7 @@ class PingController extends Controller
                 foreach ($ping_ip_table as $ping_ip_table_row)
                 {
                     dispatch(new PingJob($ping_ip_table_row));
-                    dispatch(new SmoothenLastMs($ping_ip_table_row));
+                    dispatch(new PingJobDribblyBits($ping_ip_table_row));
                     //die("1 bomb");
                 }
                 $we_managed_to_cycle_x_times++;
