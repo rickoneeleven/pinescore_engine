@@ -21,7 +21,7 @@ class PingCommand extends Command
      *
      * @var string
      */
-    protected $description = 'the main engine behind pinescore, pings all nodes and updates database';
+    protected $description = 'the main man behind pinescore, pings all nodes and updates database';
 
     /**
      * Create a new command instance.
@@ -40,12 +40,7 @@ class PingCommand extends Command
      */
     public function handle()
     {
-        //protect class from only being able to be ran by certain IP
-
-        //next: 
-        //:watch the artisan commands video
-        //:get artisan setup to run crons and run pingcontroller (with less logging or a way logs clean out each time?)
-        //:finish transfering dave function in PingJob
+        //wip111 protect class from only being able to be ran by certain IP
 
         $start = strtotime('now');
         $end = $start + 58;

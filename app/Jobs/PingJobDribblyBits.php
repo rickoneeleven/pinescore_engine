@@ -42,6 +42,7 @@ class PingJobDribblyBits implements ShouldQueue
             //on just the initial row passed to class
             if($ping_ip_table_row->last_email_status == "Online") $ping_ip_table_row->last_online_toggle = date('Y-m-d H:i:s'); //this is
             //used to calulate how long nodes have been online, and change table row colours, and help filter nodes over 72 hours.
+            
             $lta_difference_algo = $this->ltaCurrentMsDifference(array(
                 'average_longterm_ms'   => $ping_ip_table_row->average_longterm_ms,
                 'last_ms'               => $last_ms,

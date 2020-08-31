@@ -9,6 +9,8 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use App\stat;
 use App\ping_result_table;
+use App\ping_ip_table;
+use App\alerts;
 
 class PingJob implements ShouldQueue
 {
@@ -61,6 +63,44 @@ class PingJob implements ShouldQueue
         $ping_result_table->change = $change;
         $ping_result_table->email_sent = 0;
         $ping_result_table->save();
+
+
+        
+        $ping_ip_table = ping_ip_table::where('ip', $this->ping_ip_table_row->ip)->get(); //we've not had this table in here before, we just
+        //passed a single row via the contruct.
+        foreach($ping_ip_table as $ping_ip_table_row) { //we have to do this foreach, as the get() command above does not allow
+            //save() for multiple returns.
+            if($ping_ip_table_row->last_email_status == "") { //if no status is set at all, new node, update to that this most recent result
+                $ping_ip_table_row->last_email_status = $online_or_offline;
+                $ping_ip_table_row->save();
+            }
+
+
+
+
+
+
+            if($ping_ip_table_row->last_email_status != $online_or_offline || $ping_ip_table_row->count > 0) {
+
+
+                if ($ping_ip_table_row->count > 9 && $ping_ip_table_row->last_email_status != $online_or_offline) { //count is at 10 and still different
+                    //from last_email_status so we need to take some action
+                    if(alerts::find($ping_ip_table_row->id)) { //alerts configured for this node
+                        
+                        Logger("email alerts found for this node");
+                    } 
+                }
+
+
+                
+                //wip111: working through actionicmp->hasStatusChanged
+            }
+        }
+
+
+
+
+        
 
 
     }
