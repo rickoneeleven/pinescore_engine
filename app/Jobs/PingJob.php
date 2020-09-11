@@ -85,9 +85,16 @@ class PingJob implements ShouldQueue
 
                 if ($ping_ip_table_row->count > 9 && $ping_ip_table_row->last_email_status != $online_or_offline) { //count is at 10 and still different
                     //from last_email_status so we need to take some action
-                    if(alerts::find($ping_ip_table_row->id)) { //alerts configured for this node
+                    $associated_alerts = alerts::where('ping_ip_id', $ping_ip_table_row->id)->get();
+                    
+                    if($associated_alerts->count() > 0) { //alerts configured for this node
                         
-                        Logger("email alerts found for this node");
+                        Logger($ping_ip_table_row->note." has alerts");
+                        //do we query for all alerts here and pass, or just for one and then pass?
+
+
+                        //dispatch(new NodeChangeAlert($what_data_we_pass???));
+                        //$this->icmpmodel->emailAlert($last_result, $row->ip, $row->id); //email status change
                     } 
                 }
 
