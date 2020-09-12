@@ -17,5 +17,7 @@ use Illuminate\Support\Facades\Route;
 //    return view('welcome');
 //});
 
-Route::get('/', 'PingController@index');
+Route::get('/', function () {
+    $exitCode = Artisan::call('command:PingCommand');
+});
 Route::get('/party', 'partytest@index');
