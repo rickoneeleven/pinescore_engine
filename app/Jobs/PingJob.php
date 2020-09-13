@@ -11,6 +11,8 @@ use App\stat;
 use App\ping_result_table;
 use App\ping_ip_table;
 use App\alerts;
+use App\Notifications\NodeChangeAlert;
+use Notification;
 
 class PingJob implements ShouldQueue
 {
@@ -86,16 +88,17 @@ class PingJob implements ShouldQueue
                 if ($ping_ip_table_row->count > 9 && $ping_ip_table_row->last_email_status != $online_or_offline) { //count is at 10 and still different
                     //from last_email_status so we need to take some action
                     $associated_alerts = alerts::where('ping_ip_id', $ping_ip_table_row->id)->get();
-                    
-                    if($associated_alerts->count() > 0) { //alerts configured for this node
+                    foreach($associated_alerts as $alerts_row) {
+                        $data['alerts_row'] = $alerts_row;
+                        $data['$ping_ip_table_row'] = $ping_ip_table_row;
+
+                        Notification::route('mail', $alerts_row->email)->notify(new NodeChangeAlert($data));
+
+                    }
+ 
                         
-                        Logger($ping_ip_table_row->note." has alerts");
-                        //do we query for all alerts here and pass, or just for one and then pass?
-
-
-                        //dispatch(new NodeChangeAlert($what_data_we_pass???));
-                        //$this->icmpmodel->emailAlert($last_result, $row->ip, $row->id); //email status change
-                    } 
+                     //$this->icmpmodel->emailAlert($last_result, $row->ip, $row->id); //email status change
+                    
                 }
 
 
