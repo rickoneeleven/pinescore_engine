@@ -90,7 +90,8 @@ class PingJob implements ShouldQueue
                     $associated_alerts = alerts::where('ping_ip_id', $ping_ip_table_row->id)->get();
                     foreach($associated_alerts as $alerts_row) {
                         $data['alerts_row'] = $alerts_row;
-                        $data['$ping_ip_table_row'] = $ping_ip_table_row;
+                        $data['ping_ip_table_row'] = $ping_ip_table_row;
+                        $data['now_state'] = $online_or_offline;
 
                         Notification::route('mail', $alerts_row->email)->notify(new NodeChangeAlert($data));
 

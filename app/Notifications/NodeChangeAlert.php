@@ -10,15 +10,17 @@ use Illuminate\Notifications\Notification;
 class NodeChangeAlert extends Notification
 {
     use Queueable;
+    public $array_passed;
 
     /**
      * Create a new notification instance.
      *
      * @return void
      */
-    public function __construct()
+    public function __construct($array_passed)
     {
-        //
+        $this->array_passed = $array_passed;
+        //Logger($this->array_passed);
     }
 
     /**
@@ -41,9 +43,9 @@ class NodeChangeAlert extends Notification
     public function toMail($notifiable)
     {
         return (new MailMessage)
-                    ->line('The introduction to the notification.')
-                    ->action('Notification Action', url('/'))
-                    ->line('Thank you for using our application!');
+        ->subject($this->array_passed['now_state']. " -> ".$this->array_passed['ping_ip_table_row']['note'])
+        ->line($this->array_passed['ping_ip_table_row']['note']." is now ".$this->array_passed['now_state'])
+        ->action('Open Dashboard', url('/'));
     }
 
     /**
