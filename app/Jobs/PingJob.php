@@ -97,8 +97,10 @@ class PingJob implements ShouldQueue
 
                     }
  
-                        
-                     //$this->icmpmodel->emailAlert($last_result, $row->ip, $row->id); //email status change
+                    $ping_ip_table_row->last_email_status = $online_or_offline;
+                    $ping_ip_table_row->count = 0;
+                    $ping_ip_table_row->save();
+                     //carry on from line 158 in actionicmp in novascore project
                     
                 }
 
