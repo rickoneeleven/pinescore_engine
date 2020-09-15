@@ -113,7 +113,6 @@ class PingJob implements ShouldQueue
 
                 }
                 
-                //wip111: does it screw up reports? first click and 3 year?
             } 
 
             if($ping_result_table_duplicate_protection === 0) {
@@ -138,14 +137,6 @@ class PingJob implements ShouldQueue
         
 
 
-    }
-
-    public function dave() {
-        $last_result = $this->icmpmodel->lastResult($row->ip);
-
-        foreach($last_result as $last_result) {
-            $this->hasStatusChanged($last_result, $data_db, $row);
-        }
     }
 
     private function pingv2($host, $timeout = 1) 
