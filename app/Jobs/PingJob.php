@@ -41,10 +41,8 @@ class PingJob implements ShouldQueue
         $online_or_offline = $this->onlineOrOffline($ping_ms);
         //logger("pinging " . $this->ping_ip_table_row->ip . " ".$ping_ms."ms | ".$online_or_offline);
 
-
-
-
         if($online_or_offline != $this->ping_ip_table_row->last_email_status) {
+            if(!$this->icmpControl()) return false;
             $change = 1;
             //logger("CHANGE");
             $stat = new stat;
@@ -78,12 +76,7 @@ class PingJob implements ShouldQueue
             }
 
 
-
-
-
-
             if($ping_ip_table_row->last_email_status != $online_or_offline || $ping_ip_table_row->count > 0) {
-
 
                 if ($ping_ip_table_row->count > 9 && $ping_ip_table_row->last_email_status != $online_or_offline) { //count is at 10 and still different
                     //from last_email_status so we need to take some action
@@ -100,14 +93,26 @@ class PingJob implements ShouldQueue
                     $ping_ip_table_row->last_email_status = $online_or_offline;
                     $ping_ip_table_row->count = 0;
                     $ping_ip_table_row->save();
-                     //carry on from line 158 in actionicmp in novascore project
                     
-                }
+                } else if($ping_ip_table_row->last_email_status != $online_or_offline) { 
 
-
+                    $ping_ip_table_row->count = ++$ping_ip_table_row->count;
+                    $ping_ip_table_row->count_direction = "Up";
+                    $ping_ip_table_row->save();
                 
-                //wip111: working through actionicmp->hasStatusChanged
-            }
+                } else {
+
+                    $ping_ip_table_row->count = --$ping_ip_table_row->count;
+                    $ping_ip_table_row->count_direction = "Down";
+                    $ping_ip_table_row->save();
+
+                }
+                
+                //wip111: does it screw up reports? first click and 3 year?
+            } 
+
+            $ping_ip_table_row->last_ran = date('Y-m-d H:i:s');
+            $ping_ip_table_row->save();
         }
 
 
@@ -157,6 +162,24 @@ class PingJob implements ShouldQueue
         } else {
             return "Online";
         }
+    }
+
+    private function icmpControl() {
+        $opendns = $this->pingv2("opendns.com");
+
+        if($opendns > 1) {
+            return true;
+        } else {
+            $usetoday = $this->pingv2("usatoday.com");
+            if($usetoday > 1) {
+                return true;
+            } else {
+                Logger("Killing engine, control failed");
+                return false;
+            }
+
+        }
+
     }
 
 

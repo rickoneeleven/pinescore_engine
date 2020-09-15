@@ -49,7 +49,6 @@ class PingJobDribblyBits implements ShouldQueue
             ));
 
             $ping_ip_table_row->lta_difference_algo = $lta_difference_algo;
-            $ping_ip_table_row->last_ran = date('Y-m-d H:i:s');
             $ping_ip_table_row->last_ms = $last_ms;
             $ping_ip_table_row->save();
         }
