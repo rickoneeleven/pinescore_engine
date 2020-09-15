@@ -54,18 +54,10 @@ class PingJob implements ShouldQueue
             $change = 0;
         }
 
+        $result = "ICMP timed out";
+        if($this->ping_ip_table_row->last_email_status == "Offline") $result = "ICMP response received";
 
-        $ping_result_table = new ping_result_table;
-        $ping_result_table->ip = $this->ping_ip_table_row->ip;
-        $ping_result_table->datetime =date('Y-m-d H:i:s');
-        $ping_result_table->ms = $ping_ms;
-        $ping_result_table->result = $online_or_offline;
-        $ping_result_table->change = $change;
-        $ping_result_table->email_sent = 0;
-        $ping_result_table->save();
-
-
-        
+        $ping_result_table_duplicate_protection = 0;
         $ping_ip_table = ping_ip_table::where('ip', $this->ping_ip_table_row->ip)->get(); //we've not had this table in here before, we just
         //passed a single row via the contruct.
         foreach($ping_ip_table as $ping_ip_table_row) { //we have to do this foreach, as the get() command above does not allow
@@ -93,6 +85,19 @@ class PingJob implements ShouldQueue
                     $ping_ip_table_row->last_email_status = $online_or_offline;
                     $ping_ip_table_row->count = 0;
                     $ping_ip_table_row->save();
+
+                    if($ping_result_table_duplicate_protection === 0) {
+                        $ping_result_table = new ping_result_table;
+                        $ping_result_table->ip = $this->ping_ip_table_row->ip;
+                        $ping_result_table->datetime =date('Y-m-d H:i:s');
+                        $ping_result_table->ms = $ping_ms;
+                        $ping_result_table->result = $online_or_offline;
+                        $ping_result_table->change = $change;
+                        $ping_result_table->email_sent = "Node is now <strong>$online_or_offline</strong>";
+                        $ping_result_table->save();
+                        $ping_result_table_duplicate_protection++;
+                    }
+
                     
                 } else if($ping_ip_table_row->last_email_status != $online_or_offline) { 
 
@@ -110,6 +115,18 @@ class PingJob implements ShouldQueue
                 
                 //wip111: does it screw up reports? first click and 3 year?
             } 
+
+            if($ping_result_table_duplicate_protection === 0) {
+                $ping_result_table = new ping_result_table;
+                $ping_result_table->ip = $this->ping_ip_table_row->ip;
+                $ping_result_table->datetime =date('Y-m-d H:i:s');
+                $ping_result_table->ms = $ping_ms;
+                $ping_result_table->result = $this->ping_ip_table_row->last_email_status;
+                $ping_result_table->change = $change;
+                $ping_result_table->email_sent = $result;
+                $ping_result_table->save();
+                $ping_result_table_duplicate_protection++;
+            }
 
             $ping_ip_table_row->last_ran = date('Y-m-d H:i:s');
             $ping_ip_table_row->save();
