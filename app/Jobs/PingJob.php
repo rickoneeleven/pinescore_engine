@@ -120,7 +120,7 @@ class PingJob implements ShouldQueue
                 $ping_result_table->ip = $this->ping_ip_table_row->ip;
                 $ping_result_table->datetime =date('Y-m-d H:i:s');
                 $ping_result_table->ms = $ping_ms;
-                $ping_result_table->result = $this->ping_ip_table_row->last_email_status;
+                $ping_result_table->result = $online_or_offline;
                 $ping_result_table->change = $change;
                 $ping_result_table->email_sent = $result;
                 $ping_result_table->save();
