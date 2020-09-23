@@ -34,7 +34,12 @@ class PingJobDribblyBits implements ShouldQueue
      */
     public function handle()
     {
-        $last_ms = $this->getAverageOfLastXpings($this->ping_ip_table_row->ip);
+        if($this->ping_ip_table_row->last_email_status == "New") {
+            $last_ms = 100;
+        } else {
+            $last_ms = $this->getAverageOfLastXpings($this->ping_ip_table_row->ip);
+        }
+        
         $ping_ip_table = ping_ip_table::where('ip', $this->ping_ip_table_row->ip)->get();
 
         foreach($ping_ip_table as $ping_ip_table_row) { //we have to do this foreach, as the get() command above does not allow
@@ -59,7 +64,8 @@ class PingJobDribblyBits implements ShouldQueue
 
         $ping_result_table = ping_result_table::where('ip', $ip)
         ->orderBy('datetime', 'desc')
-        ->limit(11)
+        ->limit(9) //don't do any more than 9, because if a new node is added, it tries to get the status of say > 10, but because we only have 10 pingt_result
+        //histories the engine hangs searching through the whole ping_result table
         ->get();
 
         $average = array();

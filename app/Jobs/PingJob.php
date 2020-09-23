@@ -56,6 +56,7 @@ class PingJob implements ShouldQueue
 
         $result = "ICMP timed out";
         if($this->ping_ip_table_row->last_email_status == "Offline") $result = "ICMP response received";
+        if($this->ping_ip_table_row->last_email_status == "New") $result = "Sending welcome parcel to new node...";
 
         $ping_result_table_duplicate_protection = 0;
         $ping_ip_table = ping_ip_table::where('ip', $this->ping_ip_table_row->ip)->get(); //we've not had this table in here before, we just
