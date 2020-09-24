@@ -64,7 +64,7 @@ class PingJobDribblyBits implements ShouldQueue
 
         $ping_result_table = ping_result_table::where('ip', $ip)
         ->orderBy('datetime', 'desc')
-        ->limit(9) //don't do any more than 9, because if a new node is added, it tries to get the status of say > 10, but because we only have 10 pingt_result
+        ->limit(3) //don't do any more than 9, because if a new node is added, it tries to get the status of say > 10, but because we only have 10 pingt_result
         //histories the engine hangs searching through the whole ping_result table
         ->get();
 
