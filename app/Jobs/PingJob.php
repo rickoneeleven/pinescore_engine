@@ -54,16 +54,19 @@ class PingJob implements ShouldQueue
             $change = 0;
         }
 
-        $result = "packet dropped (".$ping_ip_table_row->count."/10";
-        if($this->ping_ip_table_row->last_email_status == "Offline") $result = "packet recieved, but connection not stable enough to be considered <strong>Online</strong>
-            (".$ping_ip_table_row->count."/10";
-        if($this->ping_ip_table_row->last_email_status == "New") $result = "Sending welcome parcel to new node...i think it's $online_or_offline";
-
         $ping_result_table_duplicate_protection = 0;
         $ping_ip_table = ping_ip_table::where('ip', $this->ping_ip_table_row->ip)->get(); //we've not had this table in here before, we just
         //passed a single row via the contruct.
         foreach($ping_ip_table as $ping_ip_table_row) { //we have to do this foreach, as the get() command above does not allow
             //save() for multiple returns.
+
+
+            $result = "packet dropped (".$ping_ip_table_row->count."/10)";
+            if($this->ping_ip_table_row->last_email_status == "Offline") $result = "packet recieved, but connection not stable enough to be considered <strong>Online</strong>
+                (".$ping_ip_table_row->count."/10)";
+            if($this->ping_ip_table_row->last_email_status == "New") $result = "Sending welcome parcel to new node...i think it's $online_or_offline";
+
+
             if($ping_ip_table_row->last_email_status == "") { //if no status is set at all, new node, update to that this most recent result
                 $ping_ip_table_row->last_email_status = $online_or_offline;
                 $ping_ip_table_row->save();
