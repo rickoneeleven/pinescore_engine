@@ -60,10 +60,10 @@ class PingJob implements ShouldQueue
         foreach($ping_ip_table as $ping_ip_table_row) { //we have to do this foreach, as the get() command above does not allow
             //save() for multiple returns.
 
-
-            $result = "packet dropped (".++$ping_ip_table_row->count."/10 consecutive)";
+            $count_plus_one_for_readability_in_reports = $ping_ip_table_row->count +1;
+            $result = "packet dropped (".$count_plus_one_for_readability_in_reports."/10 consecutive)";
             if($this->ping_ip_table_row->last_email_status == "Offline") $result = "packet recieved, but connection not stable enough to be considered <strong>Online</strong>
-                (".++$ping_ip_table_row->count."/10 consecutive)";
+                (".$count_plus_one_for_readability_in_reports."/10 consecutive)";
             if($this->ping_ip_table_row->last_email_status == "New") $result = "Sending welcome parcel to new node...i think it's $online_or_offline";
 
 
