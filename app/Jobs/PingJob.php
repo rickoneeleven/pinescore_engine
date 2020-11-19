@@ -55,7 +55,7 @@ class PingJob implements ShouldQueue
         }
 
         $result = "ICMP timed out";
-        if($this->ping_ip_table_row->last_email_status == "Offline") $result = "ICMP response received";
+        if($this->ping_ip_table_row->last_email_status == "Offline") $result = "packet recieved, but connection not stable enough to be considered Online";
         if($this->ping_ip_table_row->last_email_status == "New") $result = "Sending welcome parcel to new node...i think it's $online_or_offline";
 
         $ping_result_table_duplicate_protection = 0;
