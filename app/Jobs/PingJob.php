@@ -62,7 +62,7 @@ class PingJob implements ShouldQueue
 
             $count_plus_one_for_readability_in_reports = $ping_ip_table_row->count +1;
             $result = "packet dropped (".$count_plus_one_for_readability_in_reports."/10 consecutive)";
-            if($this->ping_ip_table_row->last_email_status == "Offline") $result = "packet recieved, inconsistent stream (".$count_plus_one_for_readability_in_reports."/10 consecutive)";
+            if($this->ping_ip_table_row->last_email_status == "Offline") $result = "site offline, trying to re-establish stable session (".$count_plus_one_for_readability_in_reports."/10 consecutive)";
             if($this->ping_ip_table_row->last_email_status == "New") $result = "Sending welcome parcel to new node...i think it's $online_or_offline";
 
 
