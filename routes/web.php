@@ -20,4 +20,4 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     $exitCode = Artisan::call('command:PingCommand');
 });
-Route::get('/party', 'partytest@index');
+Route::get('/partytest', 'partytest@index');
