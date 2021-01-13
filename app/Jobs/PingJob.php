@@ -13,6 +13,7 @@ use App\ping_ip_table;
 use App\alerts;
 use App\Notifications\NodeChangeAlert;
 use Notification;
+use App\oscheck;
 
 class PingJob implements ShouldQueue
 {
@@ -85,7 +86,7 @@ class PingJob implements ShouldQueue
                         Notification::route('mail', $alerts_row->email)->notify(new NodeChangeAlert($data));
 
                     }
- 
+
                     $ping_ip_table_row->last_email_status = $online_or_offline;
                     $ping_ip_table_row->count = 0;
                     $ping_ip_table_row->save();
@@ -93,7 +94,7 @@ class PingJob implements ShouldQueue
                     if($ping_result_table_duplicate_protection === 0) {
                         $ping_result_table = new ping_result_table;
                         $ping_result_table->ip = $this->ping_ip_table_row->ip;
-                        $ping_result_table->datetime =date('Y-m-d H:i:s');
+                        $ping_result_table->datetime = date('Y-m-d H:i:s');
                         $ping_result_table->ms = $ping_ms;
                         $ping_result_table->result = $online_or_offline;
                         $ping_result_table->change = $change;
@@ -102,13 +103,13 @@ class PingJob implements ShouldQueue
                         $ping_result_table_duplicate_protection++;
                     }
 
-                    
-                } else if($ping_ip_table_row->last_email_status != $online_or_offline) { 
+
+                } else if($ping_ip_table_row->last_email_status != $online_or_offline) {
 
                     $ping_ip_table_row->count = ++$ping_ip_table_row->count;
                     $ping_ip_table_row->count_direction = "Up";
                     $ping_ip_table_row->save();
-                
+
                 } else {
 
                     $ping_ip_table_row->count = --$ping_ip_table_row->count;
@@ -116,13 +117,13 @@ class PingJob implements ShouldQueue
                     $ping_ip_table_row->save();
 
                 }
-                
-            } 
+
+            }
 
             if($ping_result_table_duplicate_protection === 0) {
                 $ping_result_table = new ping_result_table;
                 $ping_result_table->ip = $this->ping_ip_table_row->ip;
-                $ping_result_table->datetime =date('Y-m-d H:i:s');
+                $ping_result_table->datetime = date('Y-m-d H:i:s');
                 $ping_result_table->ms = $ping_ms;
                 $ping_result_table->result = $online_or_offline;
                 $ping_result_table->change = $change;
@@ -138,21 +139,28 @@ class PingJob implements ShouldQueue
 
 
 
-        
+
 
 
     }
 
-    private function pingv2($host, $timeout = 1) 
+    private function pingv2($host, $timeout = 1)
     {
+        //os check
+        $oscheck = new oscheck;
+        if($oscheck->isLinux()) {
+            $com = 'ping -n -w ' . $timeout . ' -c 1 ' . escapeshellarg($host);
+        } else {
+            $com = '/sbin/ping -n -t ' . $timeout . ' -c 1 ' . escapeshellarg($host); //is macOS
+        }
         for ($k = 0 ; $k < 2; $k++) {
             $output = array();
-            $com = 'ping -n -w ' . $timeout . ' -c 1 ' . escapeshellarg($host);
+
             $exitcode = 0;
             exec($com, $output, $exitcode);
-            
+
             if ($exitcode == 0 || $exitcode == 1)
-            { 
+            {
                 foreach($output as $cline)
                 {
                     if (strpos($cline, 'time') !== FALSE)
@@ -164,7 +172,7 @@ class PingJob implements ShouldQueue
             }
             unset($output);
         }
-        
+
         return FALSE;
     }
 
