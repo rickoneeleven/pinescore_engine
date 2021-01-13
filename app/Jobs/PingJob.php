@@ -61,8 +61,8 @@ class PingJob implements ShouldQueue
             //save() for multiple returns.
 
             $count_plus_one_for_readability_in_reports = $ping_ip_table_row->count +1;
-            $result = "packet dropped (".$count_plus_one_for_readability_in_reports."/10 consecutive)";
-            if($this->ping_ip_table_row->last_email_status == "Offline") $result = "node offline, trying to re-establish stable session (".$count_plus_one_for_readability_in_reports."/10 consecutive)";
+            $result = "packets dropped (".$count_plus_one_for_readability_in_reports."/10 consecutive)";
+            if($this->ping_ip_table_row->last_email_status == "Offline") $result = "connection failed, retrying to negotiate secure session, phase ".$count_plus_one_for_readability_in_reports."/10";
             if($this->ping_ip_table_row->last_email_status == "New") $result = "Sending welcome parcel to new node...i think it's $online_or_offline";
 
 
