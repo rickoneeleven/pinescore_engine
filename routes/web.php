@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Artisan;
 
 /*
 |--------------------------------------------------------------------------
@@ -14,10 +15,8 @@ use Illuminate\Support\Facades\Route;
 */
 
 //Route::get('/', function () {
-//    return view('welcome');
+//    $exitCode = Artisan::call('command:PingCommand');
 //});
 
-Route::get('/', function () {
-    $exitCode = Artisan::call('command:PingCommand');
-});
+Route::get('/', 'partytest@index');
 Route::get('/partytest', 'partytest@index');
