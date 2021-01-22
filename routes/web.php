@@ -20,3 +20,4 @@ use Illuminate\Support\Facades\Artisan;
 
 Route::get('/', 'partytest@index');
 Route::get('/partytest', 'partytest@index');
+Route::get('/trace', 'traceRoute@go');
