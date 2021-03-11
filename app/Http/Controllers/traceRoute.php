@@ -13,10 +13,10 @@ class traceRoute extends Controller
     $ping_ip_table = ping_ip_table::all()->unique('ip');
         $x = 1;
         foreach ($ping_ip_table as $ping_ip_table_row) {
-                echo "dispatching job for: $ping_ip_table_row->ip";
+                //echo "dispatching job for: $ping_ip_table_row->ip";
                 dispatch(new TracerouteJob($ping_ip_table_row->ip));
                 $x++;
-                if($x > 1) die();
+                //if($x > 1) die();
         }
     }
 }

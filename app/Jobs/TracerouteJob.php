@@ -9,6 +9,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Process\Process;
+use App\traceroute;
 
 class TracerouteJob implements ShouldQueue
 {
@@ -34,14 +35,18 @@ class TracerouteJob implements ShouldQueue
      */
     public function handle()
     {
-        logger("kebab");
-        logger($this->node);
+        logger("creating traceroute report for ".$this->node);
         $process = new Process(['/usr/sbin/traceroute', '-n', '-q1', '-w1', '-m30', $this->node]);
         $process->run();
 
         if (!$process->isSuccessful()) {
             throw new ProcessFailedException($process);
         }
-        echo "<pre>".$process->getOutput()."</pre>";
+        $traceroute = new traceroute;
+        $traceroute->node = $this->node;
+        $traceroute->report = $process->getOutput();
+        $traceroute->save();
+
+        //echo "<pre>".$process->getOutput()."</pre>";
     }
 }
