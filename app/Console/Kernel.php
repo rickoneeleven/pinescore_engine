@@ -26,6 +26,7 @@ class Kernel extends ConsoleKernel
     {
         $schedule->command('command:PingCommand')->everyMinute();
         $schedule->command('logs:clear')->daily();
+        $schedule->call('App\Http\Controllers\traceRoute@go')->everyHour();
     }
 
     /**
