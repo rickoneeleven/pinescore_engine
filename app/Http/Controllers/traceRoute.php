@@ -14,7 +14,7 @@ class traceRoute extends Controller
         $x = 1;
         foreach ($ping_ip_table as $ping_ip_table_row) {
                 //echo "dispatching job for: $ping_ip_table_row->ip";
-                dispatch(new TracerouteJob($ping_ip_table_row->ip));
+                dispatch(new TracerouteJob($ping_ip_table_row->ip))->onQueue('traceRoute');
                 $x++;
                 //if($x > 1) die();
         }
