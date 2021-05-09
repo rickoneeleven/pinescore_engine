@@ -48,3 +48,7 @@ sudo supervisorctl reread
 sudo supervisorctl update
 sudo supervisorctl start horizon
 
+#because the tracert engine uses the -I option (ICMP) we need to do some funk
+setcap CAP_NET_ADMIN+ep "$(readlink -f /usr/sbin/traceroute)"
+setcap CAP_NET_RAW+ep "$(readlink -f /usr/sbin/traceroute)"
+#ref https://unix.stackexchange.com/questions/291019/how-to-allow-traceroute-to-run-as-root-on-ubuntu
