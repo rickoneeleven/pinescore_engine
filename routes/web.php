@@ -18,6 +18,9 @@ use Illuminate\Support\Facades\Artisan;
 //    $exitCode = Artisan::call('command:PingCommand');
 //});
 
-Route::get('/', 'partytest@index');
+Route::get('/', function()
+{
+    return 'have you ever tried phileas fogg crisps?';
+});
 Route::get('/partytest', 'partytest@index');
 Route::get('/trace', 'traceRoute@go');
