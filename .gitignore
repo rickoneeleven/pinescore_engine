@@ -12,3 +12,5 @@ npm-debug.log
 yarn-error.log
 horizon.log
 app/Http/Controllers/partytest.php
+.vscode/settings.json
+pinescore.session.sql
