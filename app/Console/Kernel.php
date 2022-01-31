@@ -25,8 +25,9 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
         $schedule->command('command:PingCommand')->everyMinute();
-        $schedule->command('logs:clear')->daily();
         $schedule->call('App\Http\Controllers\traceRoute@go')->hourly();
+        $schedule->command('logs:clear')->daily();
+        $schedule->call('App\Http\Controllers\truncateDB@itsShowtime')->daily();
         $schedule->command('command:StoreMonthlyGroupScores')->monthly();
     }
 

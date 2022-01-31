@@ -24,3 +24,4 @@ Route::get('/', function()
 });
 Route::get('/partytest', 'partytest@index');
 Route::get('/trace', 'traceRoute@go');
+Route::get('/delete', 'truncateDB@itsShowtime');
