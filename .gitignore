@@ -14,3 +14,4 @@ horizon.log
 .vscode/settings.json
 pinescore.session.sql
 app/Http/Controllers/partytest.php
+composer.lock
