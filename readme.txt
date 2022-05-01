@@ -4,8 +4,8 @@ Laraverl project that handles the nuts and bolts of the ping engine for pinescor
 composer update (maybe install?)
 cp .env.example .env
 configure .env
-    use redis queue
-    make sure you update MAIL_FROM_ADDRESS=null too
+    update APP_URL, SQL and MAIL bits
+    
 
 change composer.json so it can use newer versions of the laravel framework, only if you have issues installing the below
     specify the exact version
@@ -15,7 +15,8 @@ check it works: redis-cli
 
 composer require predis/predis
 
-composer require laravel/horizon
+check horizon is installed: "composer show -i|grep hori"
+if not, play with "composer require laravel/horizon"
 php artisan horizon:install
 php artisan horizon:publish
 
@@ -31,7 +32,7 @@ once working, kill the manual process and setup supervisor below
 
 sudo apt-get install supervisor
 
-vim /etc/supervisor/conf.d/horizon
+vim /etc/supervisor/conf.d/horizon.conf
 [program:horizon]
 process_name=%(program_name)s
 command=php /home/pinescore/domains/engine.pinescore.com/public_html/artisan horizon
@@ -49,6 +50,6 @@ sudo supervisorctl update
 sudo supervisorctl start horizon
 
 #because the tracert engine uses the -I option (ICMP) we need to do some funk
-setcap CAP_NET_ADMIN+ep "$(readlink -f /usr/sbin/traceroute)"
+setcap CAP_NET_ADMIN+ep "$(readlink -f /usr/sbin/traceroute)" //sometimes just /bin/
 setcap CAP_NET_RAW+ep "$(readlink -f /usr/sbin/traceroute)"
 #ref https://unix.stackexchange.com/questions/291019/how-to-allow-traceroute-to-run-as-root-on-ubuntu
