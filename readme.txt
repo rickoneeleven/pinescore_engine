@@ -4,7 +4,7 @@ Laraverl project that handles the nuts and bolts of the ping engine for pinescor
 composer update (maybe install?)
 cp .env.example .env
 configure .env
-    update APP_URL, SQL and MAIL bits
+    update APP_URL, TRACEROUTE_BIN_LOCATION, SQL and MAIL bits
     
 
 change composer.json so it can use newer versions of the laravel framework, only if you have issues installing the below
