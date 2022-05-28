@@ -185,12 +185,12 @@ class PingJob implements ShouldQueue
     }
 
     private function icmpControl() {
-        $opendns = $this->pingv2("opendns.com");
+        $opendns = $this->pingv2(env('CONTROL_IP_1'));
 
         if($opendns > 1) {
             return true;
         } else {
-            $usetoday = $this->pingv2("usatoday.com");
+            $usetoday = $this->pingv2(env('CONTROL_IP_2'));
             if($usetoday > 1) {
                 return true;
             } else {
