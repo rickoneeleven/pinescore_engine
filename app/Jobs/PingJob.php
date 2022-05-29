@@ -187,11 +187,11 @@ class PingJob implements ShouldQueue
     private function icmpControl() {
         $opendns = $this->pingv2(env('CONTROL_IP_1', 'opendns.com'));
 
-        if($opendns > 1) {
+        if($opendns > 0) {
             return true;
         } else {
             $usetoday = $this->pingv2(env('CONTROL_IP_2', 'usatoday.com'));
-            if($usetoday > 1) {
+            if($usetoday > 0) {
                 return true;
             } else {
                 Logger("Killing engine, control failed");
