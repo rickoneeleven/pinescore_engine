@@ -45,6 +45,7 @@ stdout_logfile_maxbytes=10240
 stdout_logfile_backups=0
 stopwaitsecs=3600
 
+sudo supervisorctl stop horizon
 sudo supervisorctl reread
 sudo supervisorctl update
 sudo supervisorctl start horizon
