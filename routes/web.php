@@ -25,3 +25,9 @@ Route::get('/', function()
 Route::get('/partytest', 'partytest@index');
 Route::get('/trace', 'traceRoute@go');
 Route::get('/delete', 'truncateDB@itsShowtime');
+//Route::get('/blab', function()
+//{
+//    echo "<pre>";
+//    echo file_get_contents('/home/shamone/domains/cribengine.pinescore.com/public_html/storage/logs/laravel.log');
+//    echo "</pre>";
+//});
