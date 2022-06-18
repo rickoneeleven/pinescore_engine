@@ -1,6 +1,11 @@
 # pinescore_engine - Laravel Framework 7.18.0
 Laraverl project that handles the nuts and bolts of the ping engine for pinescore
 
+Min system req's
+Absolute min of 2GB of RAM for redis/horizon engine to work, and you'll probably need the overcommit tweak below
+I'd realistically be looking for min of 4GB of RAM. Used "atop" when engine is running to see if SWP is flashing red,
+if so, you're swapping too much, more RAM please.
+
 composer update (maybe install?)
 cp .env.example .env
 configure .env
@@ -26,6 +31,14 @@ php artisan migrate
 
 add crontab
 * * * * * cd /home/pinescore/domains/engine.pinescore.com/public_html && php artisan schedule:run >> /dev/null 2>&1
+
+#allow engine to keep running when RAM low
+vim /etc/sysctl.conf
+vm.overcommit_memory=1
+sysctl -p /etc/sysctl.conf
+#if you don't want to enable this first without seeing if required, work through setting up the engine below, and then
+#tail -f /var/log/redis/redis-server.log #if you see "Can't save in background: fork: Cannot allocate memory" then you may need
+#this tweak
 
 test working: php artisan horizon
 once working, kill the manual process and setup supervisor below
@@ -54,3 +67,21 @@ sudo supervisorctl start horizon
 setcap CAP_NET_ADMIN+ep "$(readlink -f /usr/sbin/traceroute)" //sometimes just /bin/
 setcap CAP_NET_RAW+ep "$(readlink -f /usr/sbin/traceroute)"
 #ref https://unix.stackexchange.com/questions/291019/how-to-allow-traceroute-to-run-as-root-on-ubuntu
+
+########################################################################
+
+TIPS: after any big changes, run the below to re-read all config files
+php artisan config:clear
+php artisan cache:clear
+composer dump-autoload
+php artisan view:clear
+php artisan route:clear
+php artisan horizon:terminate
+
+sudo supervisorctl stop horizon
+sudo supervisorctl reread
+sudo supervisorctl update
+sudo supervisorctl start horizon
+
+Horizon/Engine issues:
+tail -f /var/log/redis/redis-server.log

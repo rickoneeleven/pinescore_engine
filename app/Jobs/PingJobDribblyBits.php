@@ -9,7 +9,6 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use App\ping_ip_table;
 use App\ping_result_table;
-use App\other;
 
 class PingJobDribblyBits implements ShouldQueue
 {
@@ -114,14 +113,9 @@ class PingJobDribblyBits implements ShouldQueue
     private function getPercentAndMsForDiff() {
         $returnArray = array();
 
-        $otherTable_percent_quicker = other::find(1);
-        $returnArray['percent_diff_quicker'] = $otherTable_percent_quicker['value'];
-
-        $otherTable_percent_slower = other::find(9);
-        $returnArray['percent_diff_slower'] = $otherTable_percent_slower['value'];
-
-        $otherTable_ms = other::find(2);
-        $returnArray['ms_diff'] = $otherTable_ms['value'];
+        $returnArray['percent_diff_quicker'] = env('PERCENT_DIFF_FOR_IMPROVING_NODES');
+        $returnArray['percent_diff_slower'] = env('PERCENT_DIFF_FOR_SLOW_NODES');
+        $returnArray['ms_diff'] = env('MS_DIFF');
     
         return $returnArray;
     }
