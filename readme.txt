@@ -2,13 +2,14 @@
 Laraverl project that handles the nuts and bolts of the ping engine for pinescore
 
 Min system req's
-Absolute min of 2GB of RAM for redis/horizon engine to work, and you'll probably need the overcommit tweak below
+- Absolute min of 2GB of RAM for redis/horizon engine to work, and you'll probably need the overcommit tweak below
 I'd realistically be looking for min of 4GB of RAM. Used "atop" when engine is running to see if SWP is flashing red,
 if so, you're swapping too much, more RAM please.
+- php 7.4
 
-composer update (maybe install?)
+composer update
 cp .env.example .env
-configure .env
+vim .env
     update APP_URL, TRACEROUTE_BIN_LOCATION, CONTROL_IP_1&2, SQL and MAIL bits
     
 
@@ -85,3 +86,4 @@ sudo supervisorctl start horizon
 
 Horizon/Engine issues:
 tail -f /var/log/redis/redis-server.log
+tail -f /home/pinescore/domains/engine.pinescore.com/public_html/storage/logs/horizon.log
