@@ -87,3 +87,5 @@ sudo supervisorctl start horizon
 Horizon/Engine issues:
 tail -f /var/log/redis/redis-server.log
 tail -f /home/pinescore/domains/engine.pinescore.com/public_html/storage/logs/horizon.log
+
+test
