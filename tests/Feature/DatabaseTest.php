@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-//use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
 use App\alerts;
@@ -10,23 +10,24 @@ use App\alerts;
 class DatabaseTest extends TestCase
 {
     use WithFaker;
-    //, Refreshdatabase;
+    use DatabaseTransactions;
     /**
      * A basic feature test example.
      *
      * @return void
      */
-    public function testjizz()
+    public function testlastltaalertdata_column_has_been_migrated_added()
     {
-        $attributes = [
-            'email' => 'crag@david.com',
-            'lastLTAalertDate' => '2012-12-12'
+        $testdata = [
+            'email' => $this->faker->email,
+            'lastLTAalertDate' => $this->faker->datetime
         ];
         
         $alert = new alerts;
-        $alert->save();
+        $alert->email = $testdata['email'];
+        $alert->lastLTAalertDate = $testdata['lastLTAalertDate'];
+        $alert->save($testdata);
         
-        
-        //$this->assertDatabaseHas('alerts', $attributes);
+        $this->assertDatabaseHas('alerts', $testdata);
     }
 }
