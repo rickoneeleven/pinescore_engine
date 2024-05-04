@@ -62,8 +62,10 @@ autorestart=true
 user=pinescore
 redirect_stderr=true
 stdout_logfile=/home/pinescore/domains/engine.pinescore.com/public_html/storage/logs/horizon.log
-stdout_logfile_maxbytes=10240
-stdout_logfile_backups=0
+stdout_logfile_maxbytes=50MB
+stdout_logfile_backups=10
+startsecs=600 ; process has to run for 600s before considered OK
+startretries=0 ; try to start an infinite amount of times
 stopwaitsecs=3600
 
 sudo supervisorctl stop horizon
@@ -92,7 +94,5 @@ sudo supervisorctl update
 sudo supervisorctl start horizon
 
 Horizon/Engine issues:
-tail -f /var/log/redis/redis-server.log
-tail -f /home/pinescore/domains/engine.pinescore.com/public_html/storage/logs/horizon.log
-
-test
+tail -f /home/pinescore/domains/engine.pinescore.com/public_html/storage/logs/horizon.log && tail -f /home/pinescore/domains/engine.pinescore.com/public_html/storage/logs/laravel.log
+sudo tail -f /var/log/redis/redis-server.log
