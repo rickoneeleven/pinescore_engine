@@ -21,6 +21,13 @@ check it works: redis-cli
 
 composer require predis/predis
 
+sooooo... laravel engine needs to run as php7.4, so let's assume you've got your webserver running that version... but what about your command line?
+php --version
+if that's showing wrong version, consider ssh'ing to server, changing to the relevent user, and adding the below to your .bashrc
+alias php='/usr/bin/php7.4'
+
+sudo apt-get install php7.4-mbstring
+
 check horizon is installed: "composer show -i|grep hori"
 if not, play with "composer require laravel/horizon"
 php artisan horizon:install
@@ -49,7 +56,7 @@ sudo apt-get install supervisor
 vim /etc/supervisor/conf.d/horizon.conf
 [program:horizon]
 process_name=%(program_name)s
-command=php /home/pinescore/domains/engine.pinescore.com/public_html/artisan horizon
+command=/bin/sh -c 'sleep 120 && php /home/loopnova/domains/cribengine.pinescore.com/public_html/artisan horizon'
 autostart=true
 autorestart=true
 user=pinescore
