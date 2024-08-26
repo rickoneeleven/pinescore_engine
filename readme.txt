@@ -94,5 +94,6 @@ sudo supervisorctl update
 sudo supervisorctl start horizon
 
 Horizon/Engine issues:
-tail -f /home/pinescore/domains/engine.pinescore.com/public_html/storage/logs/horizon.log && tail -f /home/pinescore/domains/engine.pinescore.com/public_html/storage/logs/laravel.log
+cd into public_html
+tail -f storage/logs/horizon.log && tail -f storage/logs/laravel.log
 sudo tail -f /var/log/redis/redis-server.log
