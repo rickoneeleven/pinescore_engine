@@ -56,7 +56,7 @@ sudo apt-get install supervisor
 vim /etc/supervisor/conf.d/horizon.conf
 [program:horizon]
 process_name=%(program_name)s
-command=/bin/sh -c 'sleep 120 && php /home/loopnova/domains/cribengine.pinescore.com/public_html/artisan horizon'
+command=/bin/sh -c 'sleep 1 && php /home/loopnova/domains/cribengine.pinescore.com/public_html/artisan horizon'
 autostart=true
 autorestart=true
 user=pinescore
