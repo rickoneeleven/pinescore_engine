@@ -99,13 +99,13 @@ return [
     */
 
     'trim' => [
-        'recent'        => 5,
-        'pending'       => 5,
-        'completed'     => 5,
-        'recent_failed' => 5,
-        'failed'        => 5,
-        'monitored'     => 5,
-    ],
+    'recent' => 60,
+    'pending' => 60,
+    'completed' => 60,
+    'recent_failed' => 1440,
+    'failed' => 1440,
+    'monitored' => 1440,
+],
 
     /*
     |--------------------------------------------------------------------------
