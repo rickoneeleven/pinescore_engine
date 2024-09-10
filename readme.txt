@@ -85,9 +85,9 @@ setcap CAP_NET_RAW+ep "$(readlink -f /usr/sbin/traceroute)"
 TIPS: after any big changes, run the below to re-read all config files
 php artisan config:clear
 php artisan cache:clear
-composer dump-autoload
 php artisan view:clear
 php artisan route:clear
+composer dump-autoload
 php artisan horizon:terminate
 
 sudo supervisorctl stop horizon
