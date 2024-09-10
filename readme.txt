@@ -39,6 +39,8 @@ php artisan migrate
 
 add crontab
 * * * * * cd /home/pinescore/domains/engine.pinescore.com/public_html && php artisan schedule:run >> /dev/null 2>&1
+#flush failed jobs or database grows and gobbles disk space
+23 23 * * * cd /home/pinescore/domains/engine.pinescore.com/public_html && php artisan queue:flush
 
 #allow engine to keep running when RAM low
 vim /etc/sysctl.conf
