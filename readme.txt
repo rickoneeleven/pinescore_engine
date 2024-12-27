@@ -101,3 +101,5 @@ Horizon/Engine issues:
 cd into public_html
 tail -f storage/logs/horizon.log && tail -f storage/logs/laravel.log
 sudo tail -f /var/log/redis/redis-server.log
+
+UPDATES: git pull and then "php artisan test" to make sure you're not missing any migrations  
