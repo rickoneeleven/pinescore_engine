@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Foundation\Testing\WithFaker;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 use App\alerts;
 
@@ -11,11 +12,7 @@ class DatabaseTest extends TestCase
 {
     use WithFaker;
     use DatabaseTransactions;
-    /**
-     * A basic feature test example.
-     *
-     * @return void
-     */
+
     public function testlastltaalertdata_column_has_been_migrated_added()
     {
         $testdata = [
@@ -29,5 +26,10 @@ class DatabaseTest extends TestCase
         $alert->save($testdata);
         
         $this->assertDatabaseHas('alerts', $testdata);
+    }
+
+    public function test_health_dashboard_table_exists()
+    {
+        $this->assertTrue(Schema::hasTable('health_dashboard'));
     }
 }
