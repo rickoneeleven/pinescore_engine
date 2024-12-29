@@ -25,6 +25,7 @@ Route::get('/', function()
 Route::get('/partytest', 'partytest@index');
 Route::get('/trace', 'traceRoute@go');
 Route::get('/delete', 'truncateDB@itsShowtime');
+Route::get('/horizon-metrics', 'HorizonMetricsController@show')->middleware(['web']);
 //Route::get('/blab', function()
 //{
 //    echo "<pre>";
