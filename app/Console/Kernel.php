@@ -29,6 +29,7 @@ class Kernel extends ConsoleKernel
         $schedule->command('logs:clear')->daily();
         $schedule->call('App\Http\Controllers\truncateDB@itsShowtime')->daily();
         $schedule->command('command:StoreMonthlyGroupScores')->monthly();
+        $schedule->command('horizon:update-metrics')->everyMinute();
     }
 
     /**
