@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 
 class UpdateHorizonMetricsCommand extends Command
 {
-    protected $signature = 'horizon:update-metrics';
+    protected $signature = 'horizon:update-metrics {--debug : Show detailed debug output}';
     protected $description = 'Update Horizon metrics in the database';
 
     protected $metrics;
@@ -30,27 +30,56 @@ class UpdateHorizonMetricsCommand extends Command
 
     public function handle()
     {
+        $this->info('Starting Horizon metrics collection...');
+
         // Get current metrics
         $jobsPerMinute = $this->metrics->jobsProcessedPerMinute();
+        $this->line("• Jobs processed per minute: {$jobsPerMinute}");
+        
         $failedJobs = count($this->jobs->getFailed());
+        $this->line("• Failed jobs count: {$failedJobs}");
+        
         $engineStatus = $jobsPerMinute > 0 ? 'active' : 'inactive';
+        $this->line("• Engine status: {$engineStatus}");
+
+        if ($this->option('debug')) {
+            $this->warn("\nDetailed metrics information:");
+            $this->table(
+                ['Metric', 'Value'],
+                [
+                    ['jobs_per_minute', $jobsPerMinute],
+                    ['failed_jobs_past_day', $failedJobs],
+                    ['engine_status', $engineStatus],
+                    ['jobs_past_hour', '0 (not implemented)']
+                ]
+            );
+        }
 
         // Update or insert metrics
         $metrics = [
             'jobs_per_minute' => $jobsPerMinute,
             'failed_jobs_past_day' => $failedJobs,
             'engine_status' => $engineStatus,
-            'jobs_past_hour' => null // Placeholder for future implementation
+            'jobs_past_hour' => 0
         ];
 
+        $this->info("\nUpdating database records...");
+
         foreach ($metrics as $metric => $result) {
-            DB::table('health_dashboard')->updateOrInsert(
-                ['metric' => $metric],
-                [
-                    'result' => is_numeric($result) ? (string)$result : $result,
-                    'updated_at' => now()
-                ]
-            );
+            try {
+                DB::table('health_dashboard')->updateOrInsert(
+                    ['metric' => $metric],
+                    [
+                        'result' => is_numeric($result) ? (string)$result : $result,
+                        'updated_at' => now()
+                    ]
+                );
+                $this->line("✓ Updated {$metric}");
+            } catch (\Exception $e) {
+                $this->error("Failed to update {$metric}: " . $e->getMessage());
+            }
         }
+
+        $this->info("\nMetrics update completed!");
     }
 }
