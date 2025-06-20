@@ -221,17 +221,67 @@ class PingJob implements ShouldQueue
 
             // Handle successful ping (exit code 0)
             if ($exitCode === 0) {
+                // Resolve hostname to IP(s) for comparison (if host is not already an IP)
+                $resolved_ips = [];
+                if (!filter_var($host, FILTER_VALIDATE_IP)) {
+                    // Host is a hostname, resolve all IPs
+                    $dns_records = dns_get_record($host, DNS_A);
+                    if ($dns_records) {
+                        foreach ($dns_records as $record) {
+                            $resolved_ips[] = $record['ip'];
+                        }
+                    }
+                    // Fallback to gethostbyname if dns_get_record fails
+                    if (empty($resolved_ips)) {
+                        $resolved_ip = gethostbyname($host);
+                        if ($resolved_ip !== $host) {
+                            $resolved_ips[] = $resolved_ip;
+                        }
+                    }
+                } else {
+                    // Host is already an IP
+                    $resolved_ips[] = $host;
+                }
+                
                 foreach ($output as $line) {
-                    // Regex to handle variations like time=X.Y ms, time=X ms
-                    if (preg_match('/time[=<]([0-9.]+)\s*ms/', $line, $matches)) {
-                        $latency = (int)ceil(floatval($matches[1]));
-                         Log::debug("Ping latency parsed", ['ip' => $host, 'ms' => $latency]);
-                        return $latency;
+                    // Check if this line contains a response with timing info
+                    if (preg_match('/(\d+) bytes from ([0-9.]+):.*time[=<]([0-9.]+)\s*ms/', $line, $matches)) {
+                        $response_ip = $matches[2];
+                        $latency = (int)ceil(floatval($matches[3]));
+                        
+                        // Accept responses from target IP or resolved IPs
+                        if (in_array($response_ip, $resolved_ips)) {
+                            Log::debug("Ping latency parsed from valid IP", [
+                                'target' => $host, 
+                                'response_ip' => $response_ip,
+                                'ms' => $latency
+                            ]);
+                            return $latency;
+                        } else {
+                            Log::warning("Ping response from unrelated IP - ignoring", [
+                                'target' => $host,
+                                'resolved_ips' => $resolved_ips,
+                                'response_ip' => $response_ip,
+                                'ms' => $latency,
+                                'line' => $line
+                            ]);
+                        }
+                    }
+                    // Fallback: check for time pattern without IP validation
+                    elseif (preg_match('/time[=<]([0-9.]+)\s*ms/', $line, $matches)) {
+                        Log::warning("Ping time found without IP validation - treating as failed", [
+                            'target' => $host,
+                            'line' => $line,
+                            'parsed_ms' => $matches[1]
+                        ]);
                     }
                 }
-                 // If loop finishes without finding 'time=', it means host didn't reply within timeout
-                 Log::debug("Ping reply not received or time string not found in output.", ['ip' => $host]);
-                 break; // Don't retry if command executed but no reply time found
+                 // If loop finishes without finding valid response from resolved IPs
+                 Log::debug("No valid ping response from target or resolved IPs", [
+                     'target' => $host,
+                     'resolved_ips' => $resolved_ips
+                 ]);
+                 break;
             } elseif ($exitCode === 1) {
                 // Log exit code 1 output for debugging false positives
                 Log::warning("Ping exit code 1 - logging output for analysis", [
