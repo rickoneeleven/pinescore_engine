@@ -219,9 +219,8 @@ class PingJob implements ShouldQueue
 
             Log::debug("Ping execution result", ['exitCode' => $exitCode, 'output' => $output]);
 
-            // Exit codes 0 (success) or 1 (on some systems, partial success/host unreachable but command ran)
-            // are considered valid attempts to parse output.
-            if ($exitCode === 0 || $exitCode === 1) {
+            // Handle successful ping (exit code 0)
+            if ($exitCode === 0) {
                 foreach ($output as $line) {
                     // Regex to handle variations like time=X.Y ms, time=X ms
                     if (preg_match('/time[=<]([0-9.]+)\s*ms/', $line, $matches)) {
@@ -233,6 +232,26 @@ class PingJob implements ShouldQueue
                  // If loop finishes without finding 'time=', it means host didn't reply within timeout
                  Log::debug("Ping reply not received or time string not found in output.", ['ip' => $host]);
                  break; // Don't retry if command executed but no reply time found
+            } elseif ($exitCode === 1) {
+                // Log exit code 1 output for debugging false positives
+                Log::warning("Ping exit code 1 - logging output for analysis", [
+                    'ip' => $host,
+                    'exitCode' => $exitCode,
+                    'output' => $output,
+                    'attempt' => $k+1
+                ]);
+                // Check if output contains timing info that might cause false positives
+                foreach ($output as $line) {
+                    if (preg_match('/time[=<]([0-9.]+)\s*ms/', $line, $matches)) {
+                        Log::error("FALSE POSITIVE DETECTED: Exit code 1 but found timing info", [
+                            'ip' => $host,
+                            'line' => $line,
+                            'parsed_ms' => $matches[1],
+                            'full_output' => $output
+                        ]);
+                    }
+                }
+                break; // Don't retry and don't parse timing from failed pings
             } else {
                 Log::warning("Ping command execution failed.", ['ip' => $host, 'exitCode' => $exitCode, 'attempt' => $k+1]);
                 // Optionally sleep briefly before retrying if exit code indicates a potentially transient issue
