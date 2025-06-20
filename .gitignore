@@ -15,4 +15,3 @@ horizon.log
 pinescore.session.sql
 app/Http/Controllers/partytest.php
 composer.lock
-CLAUDE.md
