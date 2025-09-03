@@ -36,7 +36,13 @@ class TracerouteJob implements ShouldQueue
     public function handle()
     {
         logger("creating traceroute report for ".$this->node);
-        $process = new Process([env('TRACEROUTE_BIN_LOCATION', '/usr/sbin/traceroute'), '-I', '-q1', '-w1', '-m30', $this->node]); //different locate than usual
+        $script = base_path('trace_hybrid.sh');
+        $maxTtl = env('TRACE_MAX_TTL', '30');
+        $ttlProbes = env('TRACE_TTL_PROBES', '3');
+        $waitSecs = env('TRACE_WAIT_SECS', '1');
+        $echoProbes = env('TRACE_ECHO_PROBES', '3');
+
+        $process = new Process(['/bin/bash', $script, $this->node, $maxTtl, $ttlProbes, $waitSecs, $echoProbes]);
         $process->run();
 
         if (!$process->isSuccessful()) {
