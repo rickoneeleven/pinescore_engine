@@ -8,6 +8,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Symfony\Component\Process\Exception\ProcessFailedException;
+use Symfony\Component\Process\Exception\ProcessTimedOutException;
 use Symfony\Component\Process\Process;
 use App\traceroute;
 use App\ping_ip_table;
@@ -19,6 +20,13 @@ class TracerouteJob implements ShouldQueue
 
     protected $node;
 
+    /**
+     * Allow more time than the process timeout to avoid worker kill.
+     * Also restrict retries to avoid repeated heavy traces.
+     */
+    public $timeout;   // seconds
+    public $tries;     // max attempts
+
 
     /**
      * Create a new job instance.
@@ -28,6 +36,10 @@ class TracerouteJob implements ShouldQueue
     public function __construct($node)
     {
         $this->node = $node;
+        $processTimeout = (int) env('TRACE_PROCESS_TIMEOUT', 120);
+        // Give the job a buffer over process timeout so we can catch and persist
+        $this->timeout = (int) env('TRACE_JOB_TIMEOUT', max($processTimeout + 30, 180));
+        $this->tries = (int) env('TRACE_JOB_TRIES', 1);
     }
 
     /**
@@ -66,11 +78,56 @@ class TracerouteJob implements ShouldQueue
         // Guard against long-running child processes; tune via env if needed
         $process->setTimeout((int) env('TRACE_PROCESS_TIMEOUT', 120));
         $process->setIdleTimeout((int) env('TRACE_IDLE_TIMEOUT', 60));
-        $process->run();
+
+        try {
+            $process->run();
+        } catch (ProcessTimedOutException $e) {
+            Log::warning('Traceroute timed out', [
+                'ip'       => $this->node,
+                'message'  => $e->getMessage(),
+                'timeout'  => $process->getTimeout(),
+                'idle'     => $process->getIdleTimeout(),
+            ]);
+
+            $traceroute = new traceroute;
+            $traceroute->node = $this->node;
+            $partial = trim($process->getOutput());
+            $traceroute->report = "Traceroute timed out after " . $process->getTimeout() . "s\n" . ($partial ?: '');
+            $traceroute->save();
+            return;
+        } catch (\Throwable $e) {
+            Log::error('Traceroute process threw', [
+                'ip'      => $this->node,
+                'class'   => get_class($e),
+                'message' => $e->getMessage(),
+            ]);
+
+            $traceroute = new traceroute;
+            $traceroute->node = $this->node;
+            $traceroute->report = "Traceroute error: " . $e->getMessage();
+            $traceroute->save();
+            return;
+        }
 
         if (!$process->isSuccessful()) {
-            throw new ProcessFailedException($process);
+            // Don't fail the job; persist diagnostic output so the engine remains stable
+            Log::error('Traceroute command failed', [
+                'ip'         => $this->node,
+                'exitCode'   => $process->getExitCode(),
+                'error'      => trim($process->getErrorOutput()),
+                'output'     => trim($process->getOutput()),
+            ]);
+
+            $traceroute = new traceroute;
+            $traceroute->node = $this->node;
+            $errorOutput = trim($process->getErrorOutput());
+            $stdout = trim($process->getOutput());
+            $traceroute->report = "Traceroute failed (exit code: " . $process->getExitCode() . ")\n" .
+                ($errorOutput !== '' ? $errorOutput : $stdout);
+            $traceroute->save();
+            return;
         }
+
         $traceroute = new traceroute;
         $traceroute->node = $this->node;
         $traceroute->report = $process->getOutput();

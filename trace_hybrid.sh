@@ -84,7 +84,8 @@ for (( ttl=1; ttl<=MAX_TTL; ttl++ )); do
     if grep -q "\* \* \*" <<<"$line"; then
       continue
     fi
-    times=$(grep -oE "[0-9]+\.[0-9]+ ms" <<<"$line" | awk '{print $1}')
+    # Extract per-probe times if present; tolerate no matches without failing the script
+    times=$( { grep -oE "[0-9]+\.[0-9]+ ms" <<<"$line" | awk '{print $1}'; } || true )
     if [[ -n "$times" ]]; then
       avgms=$(awk '{s+=$1; n++} END{if(n>0) printf("%.3f", s/n)}' <<<"$times")
       RTT[$ttl]="$avgms"
@@ -97,7 +98,8 @@ for (( ttl=1; ttl<=MAX_TTL; ttl++ )); do
 
   tr_out=$(traceroute -I -q 3 -w 2 -f "$ttl" -m "$ttl" "$HOST" 2>/dev/null || true)
   line=$(tail -n1 <<<"$tr_out")
-  times=$(grep -oE "[0-9]+\.[0-9]+ ms" <<<"$line" | awk '{print $1}')
+  # Extract times if present for ICMP traceroute; tolerate no matches
+  times=$( { grep -oE "[0-9]+\.[0-9]+ ms" <<<"$line" | awk '{print $1}'; } || true )
   if [[ -n "$times" ]]; then
     avgms=$(awk '{s+=$1; n++} END{if(n>0) printf("%.3f", s/n)}' <<<"$times")
     RTT[$ttl]="$avgms"
@@ -120,4 +122,3 @@ for (( ttl=1; ttl<=MAX_TTL; ttl++ )); do
     break
   fi
 done
-
