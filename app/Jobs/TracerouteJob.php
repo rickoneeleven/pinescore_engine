@@ -23,7 +23,7 @@ class TracerouteJob implements ShouldQueue
     protected $lockToken;
     protected $lockReleased = false;
 
-    public const LOCK_TTL_SECONDS = 600;
+    public const LOCK_TTL_SECONDS = 604800;
 
     /**
      * Allow more time than the process timeout to avoid worker kill.
