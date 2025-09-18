@@ -104,4 +104,24 @@ cd into public_html
 tail -f storage/logs/horizon.log && tail -f storage/logs/laravel.log
 sudo tail -f /var/log/redis/redis-server.log
 
-UPDATES: git pull and then "php artisan test" to make sure you're not missing any migrations  
+UPDATES: git pull and then "php artisan test" to make sure you're not missing any migrations 
+
+########################################################################
+
+## Clearing a runaway traceroute queue (September 2025)
+
+If the `traceRoute` queue balloons because old runs re-enqueued duplicates (e.g. 6k+ jobs with only ~265 nodes), reset it and let the new long-lived locks take over:
+
+1. Confirm queue depth and duplicated IPs:
+   - `redis-cli LLEN pinescore_database_queues:traceRoute`
+   - `redis-cli LRANGE pinescore_database_queues:traceRoute 0 5000 | grep -o "[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+" | sort | uniq -c | sort -nr | head`
+2. Wipe the queue and related metadata (safe, idempotent for this queue):
+   - `redis-cli DEL pinescore_database_queues:traceRoute pinescore_database_queues:traceRoute:reserved pinescore_database_queues:traceRoute:delayed pinescore_database_queues:traceRoute:notify`
+3. Kick the scheduler once to repopulate unique jobs:
+   - `/usr/bin/php7.4 artisan run:trace-route`
+4. Verify everything is clean:
+   - `redis-cli LLEN pinescore_database_queues:traceRoute` → should match `SELECT COUNT(DISTINCT ip) FROM ping_ip_table`
+   - `redis-cli LRANGE ... | uniq -c` → every IP count is 1
+   - `redis-cli --scan --pattern 'pinescore_database_trace-route-lock:*' | head` followed by `redis-cli TTL <lock>` → TTL ~604800 confirms new 7-day lock in place
+
+We lifted `TracerouteJob::LOCK_TTL_SECONDS` to 604800 seconds so nodes stay locked until their job completes or times out, preventing fresh duplicates after this reset.
