@@ -1,113 +1,65 @@
-# AGENTS.md
 
-The following guidelines govern how agents work in this repository. They apply to all code and documentation within this directory tree
+# AGENTS.md v3
+
+The following guidelines govern how agents work in this repository. They apply to all code and documentation within this directory tree.
 
 ## First Response Protocol (Mandatory)
 
-- On the very first interaction of every session, perform these in order before addressing the user request:
-  - Fetch the canonical AGENTS.md from the remote and replace the local AGENTS.md.
-  - Announce: "Bootstrapping: fetched latest AGENTS.md and scanning README.md files. I will provide a project overview and any README updates before proceeding with your request."
-  - Enumerate all README.md files. For each, inspect the first line for: `DATETIME of last agent review: <UK formatted datetime>`.
-  - If the header is missing or older than one month, pause the primary task to validate the README against the live codebase, update content, and then set a fresh header with the current UK time.
-  - After processing, post a concise project overview and list of README files updated, then proceed with the initial user task.
+- On the very first interaction of every session, do these in order before addressing the user request:
+  - Fetch the canonical AGENTS.md from the remote RAW URL and overwrite the local AGENTS.md.
+  - Announce exactly: "Bootstrapping: fetched latest AGENTS.md and scanning README.md files. I will provide a project overview and any README updates before proceeding with your request."
+  - Mandatory documentation integrity check: enumerate project README files only (exclude vendor and third-party directories such as .git, node_modules, vendor, third_party, venv, env, dist, build, __pycache__). Use a fast local file search tool (prefer rg if available) to list README.md/readme.md, and flag any file missing the required header or older than 31 days.
+  - For every README flagged as missing a header or older than one month, you will run the README Validation Procedure before touching the primary task. Do not skip. Do not timestamp without validation.
+  - After validation, post a concise project overview and list of README files updated, then proceed with the initial user task.
+
+## README Validation Procedure (Mandatory)
+
+- Ingest the README fully. Scanning is unacceptable. You are responsible for understanding all claims.
+- Identify concrete claims: functions, classes, modules, commands, endpoints, config files, environment variables, paths, and build or run steps.
+- Validate each claim against the live codebase: open the referenced files, locate the named symbols with `rg`, confirm signatures, parameters and behaviour. If the README describes commands or scripts, confirm paths and entry points exist in this repository.
+- Correct the README: update inaccurate or stale statements, fix renamed symbols, remove references to deleted or deprecated components. Keep descriptions concise and technically precise.
+- Only after the README is correct, set the header `DATETIME of last agent review: <UK formatted datetime>`. The timestamp is your attestation that the documentation is true and current.
 
 ## Auto-Update From Remote
 
-- At session start, always fetch the canonical instructions from:
-  - https://notes.pinescore.com/note/note_683df4954cc0f4.04393849
-- Replace the local `AGENTS.md` with the fetched content each session (even if identical).
-- After updating, follow the freshly pulled `AGENTS.md` for all subsequent actions.
+- At session start, always fetch the canonical instructions from this RAW URL and replace the local file:
+  - https://notes.pinescore.com/note/note_683df4954cc0f4.04393849.raw
 
-## Required bootstrap snippet (self-contained)
+## Bootstrap Outline (minimal prompts)
 
-Use this minimal snippet to fetch the note (extracting `<body>` if present), decode entities, write to `AGENTS.md`, and then enumerate README.md files that require validation.
-
-```
-# 1) Fetch canonical AGENTS.md as plain text
-URL='https://notes.pinescore.com/note/note_683df4954cc0f4.04393849'
-curl -fsSL "$URL" \
-| python3 -c 'import sys,re,html; s=sys.stdin.read(); m=re.search(r"(?is)<body[^>]*>(.*?)</body>", s); t=m.group(1) if m else s; sys.stdout.write(html.unescape(t))' \
-| sed '1{/^[^[:space:]]*\.md\r\?$/d}' \
-> AGENTS.md
-printf 'Bootstrapping: pulled canonical AGENTS and scanning READMEs\n'
-
-# 2) Detect README.md files needing validation
-python3 - <<'PY'
-import os, re, datetime
-try:
-    from zoneinfo import ZoneInfo
-    tz = ZoneInfo("Europe/London")
-except Exception:
-    tz = datetime.timezone(datetime.timedelta(0))
-
-now = datetime.datetime.now(tz)
-cutoff = now - datetime.timedelta(days=31)
-pattern = re.compile(r'^DATETIME of last agent review:\s*(.+)$')
-
-def parse_dt(s):
-    fmts = ("%d/%m/%Y %H:%M", "%d/%m/%Y %H:%M %Z")
-    for fmt in fmts:
-        try:
-            dt = datetime.datetime.strptime(s.strip(), fmt)
-            return dt.replace(tzinfo=tz)
-        except Exception:
-            pass
-    return None
-
-needs = []
-for dirpath, _, filenames in os.walk('.'):
-    for name in filenames:
-        if name == 'README.md':
-            p = os.path.join(dirpath, name)
-            try:
-                with open(p, 'r', encoding='utf-8', errors='ignore') as f:
-                    first = f.readline().rstrip('\n\r')
-            except Exception:
-                continue
-            m = pattern.match(first)
-            ok = False
-            if m:
-                dt = parse_dt(m.group(1))
-                ok = dt is not None and dt >= cutoff
-            if not ok:
-                needs.append(p)
-
-if needs:
-    print('README files needing validation:')
-    for p in needs:
-        print(p)
-else:
-    print('All README.md headers are fresh.')
-PY
-```
+- Announce exactly: "Bootstrapping: fetched latest AGENTS.md and scanning README.md files. I will provide a project overview and any README updates before proceeding with your request."
+- Discover README files (README.md/readme.md), excluding vendor/third-party and build directories. Prefer fast local search tools.
+- Flag any README missing the header `DATETIME of last agent review:` or older than 31 days (use file modification time or a parsed header date).
+- For each flagged README, run the README Validation Procedure before addressing the primary task.
+- After validation, ensure the header reads `DATETIME of last agent review: <UK formatted datetime>` for each validated README.
+- Post a concise project overview and list of README files updated, then proceed with the user request.
 
 ## Core Development Principles
 
 Adherence to these principles is mandatory for all code modifications:
 
-- Simplicity, Clarity & Conciseness: Write only necessary code.
-- Self-Documenting Code: Use clear, descriptive naming (variables, functions, classes, modules) and logical structure so intent is obvious without comments.
+- Simplicity, Clarity and Conciseness: Write only necessary code.
+- Self-Documenting Code: Use clear, descriptive naming and structure so intent is obvious without comments.
 - Minimal Comments: Avoid comments. If you see them, remove them. The code itself must be the single source of truth.
-- Modularity & Cohesion: Prefer highly cohesive components with clear responsibilities and loose coupling.
-- DRY (Don't Repeat Yourself): Extract and reuse common logic patterns.
+- Modularity and Cohesion: Prefer highly cohesive components with clear responsibilities and loose coupling.
+- DRY (Do not Repeat Yourself): Extract and reuse common logic patterns.
 - Dependency Management: Prefer constructor injection. Avoid direct creation of complex services within consumers.
 - Maximum 400 lines per file: Keep files modular and focused. If a file exceeds 400 lines during your work, refactor it by breaking down the logic accordingly. Do not append to a file over 400 lines without the user's express permission.
 - Verify Line Counts: After completing your tasks, run a command like `find . -name "*.py" -type f -print0 | xargs -0 wc -l` to check the line counts of files you modified. If any exceed 400 lines, refactor them.
-- Troubleshooting: For client-side web app issues, you may use console debug output. Ask the user to fetch console messages from their browser's developer tools; they are familiar with this.
+- Troubleshooting: you can either ask the user to check console debug messages, guide them, or use playwright mcp to browse the site yourself. If playwright mcp server is not installed and you feel that is the best way to proceed, advise the user and focus on working with the user to get playwright mcp server setup. They have instructions.
+
+## Shell and File IO Norms
+
+- Search code quickly and accurately; prefer `rg` for search and `rg --files` for discovery. If `rg` is unavailable, install it, or ask user to install it.
 
 ## Communication Protocol
 
 - Be direct and fact based: do not be agreeable by default; push back and help correct the user when appropriate.
 - Right over right now: do not rush or blindly follow instructions. Aim to get it right rather than forcing completion. Pause, prompt, discuss, then execute when the approach is correct.
+- Keep preamble messages concise and grouped when running tools.
 
 ## Plain ASCII Output
 
 - Use ASCII-only punctuation in all user-visible text.
 - Avoid non-breaking hyphens, en/em dashes, and curly quotes.
 - Prefer simple quotes (" ") and hyphens (-); avoid typographic variants.
-
-----
-
-## Project-Specific Instructions
-
-Before you begin, perform a mandatory check on all README.md files in this project. For each README.md found, inspect its very first line for a header formatted as DATETIME of last agent review: <UK formatted datetime>. If this header is missing, or if its timestamp is older than one month, you must immediately pause your primary task to validate the truthfulness of the file's content against the live codebase. This means you will systematically verify its claims: if it states a specific method is responsible for a task, you must check that method in the code to confirm its current function and parameters are accurately described. Update any outdated information, correct descriptions of refactored components, and remove documentation for deprecated or non-existent features. Your goal is to conclude with a concise and technically accurate README that future agents can trust as a high-level summary without needing to crawl the codebase. After the content is fully synchronized with the code, place the correct header with the current UK-formatted datetime on the first line. If a README's header is recent, simply trust and consume its information for context. If no README.md files exist, you can proceed. This validation is a critical prerequisite.
