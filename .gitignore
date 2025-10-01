@@ -16,3 +16,4 @@ pinescore.session.sql
 app/Http/Controllers/partytest.php
 composer.lock
 composer.phar
+.env.bak.20251001165342
