@@ -69,14 +69,17 @@ redirect_stderr=true
 stdout_logfile=/home/pinescore/domains/engine.pinescore.com/public_html/storage/logs/horizon.log
 stdout_logfile_maxbytes=50MB
 stdout_logfile_backups=10
-startsecs=600 ; process has to run for 600s before considered OK
-startretries=0 ; try to start an infinite amount of times
+startsecs=10 ; consider the process up after 10s
+startretries=5 ; retry a few times before FATAL
 stopwaitsecs=3600
 
 sudo supervisorctl stop horizon
 sudo supervisorctl reread
 sudo supervisorctl update
 sudo supervisorctl start horizon
+
+# If Horizon shows FATAL after a terminate or quick restart, lower `startsecs` and give a few `startretries` (as above),
+# and then recover with: `sudo supervisorctl clear horizon && sudo supervisorctl start horizon`.
 
 #because the tracert engine uses the -I option (ICMP) we need to do some funk
 setcap CAP_NET_ADMIN+ep "$(readlink -f /usr/sbin/traceroute)" //sometimes just /bin/
@@ -135,5 +138,10 @@ Tune basic ping behavior via environment variables:
 - `PING_DEADLINE_SECONDS` total seconds given to the `ping` command (Linux `-w`). Default 2.
 - `PING_COUNT` echo requests per `ping` invocation (Linux `-c`). Default 2.
 - `PING_ATTEMPTS` how many times to invoke `ping` if a parseable reply is not seen. Default 2.
+
+For higher UI refresh cadence without sacrificing stability (confirmation counters still apply), a common profile is:
+- `PING_DEADLINE_SECONDS=1`
+- `PING_COUNT=1`
+- `PING_ATTEMPTS=2`
 
 When a node's status appears to change, an ICMP control check to `CONTROL_IP_1` then `CONTROL_IP_2` runs. If both fail, the engine suppresses any state transition or alerts for that iteration but still records the attempt and updates `last_ran`.
