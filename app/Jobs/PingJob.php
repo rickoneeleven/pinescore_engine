@@ -13,7 +13,6 @@ use App\ping_ip_table;
 use App\alerts; // Keep this import
 use App\Notifications\NodeChangeAlert;
 use Notification;
-use App\oscheck;
 use Illuminate\Support\Facades\Log; // Added for logging
 use Carbon\Carbon; // Added for explicit time comparison
 
@@ -41,8 +40,7 @@ class PingJob implements ShouldQueue
      */
     public function handle()
     {
-        // Log job start with relevant data
-        Log::info("PingJob started.", ['ip' => $this->ping_ip_table_row->ip, 'id' => $this->ping_ip_table_row->id]);
+        Log::debug("PingJob start", ['ip' => $this->ping_ip_table_row->ip, 'id' => $this->ping_ip_table_row->id]);
 
         try {
             $ping_ms = $this->pingHost($this->ping_ip_table_row->ip);
@@ -60,17 +58,16 @@ class PingJob implements ShouldQueue
             $state_change_needs_confirmation = ($status_changed || $this->ping_ip_table_row->count > 0);
             $count_plus_one_for_readability_in_reports = $this->ping_ip_table_row->count + 1; // Calculate here for reuse
             $ping_result_table_duplicate_protection = 0;
-            $result_message = ""; // Initialize message
+            $result_message = "";
+            $control_ok = true;
 
-            // Update stat table if status changed AND ICMP control check passes
             if ($status_changed) {
                 Log::info("Status change detected", ['ip' => $this->ping_ip_table_row->ip, 'from' => $previous_status, 'to' => $current_status]);
-                if ($this->icmpControlCheck()) {
+                $control_ok = $this->icmpControlCheck();
+                if ($control_ok) {
                     $this->recordStatusChangeStat();
                 } else {
-                    Log::warning("ICMP Control Check failed. Aborting PingJob execution.", ['ip' => $this->ping_ip_table_row->ip]);
-                    // Optionally: re-throw an exception or handle differently if control failure is critical
-                    return; // Stop processing this job if control fails
+                    Log::warning("ICMP control failed - suppressing transition", ['ip' => $this->ping_ip_table_row->ip]);
                 }
             }
 
@@ -79,8 +76,11 @@ class PingJob implements ShouldQueue
 
             foreach ($ping_ip_table_entries as $ping_ip_table_entry) {
 
-                // Prepare status message for logging/DB entry
+                // Prepare status message
                 if ($state_change_needs_confirmation) {
+                    if ($status_changed && !$control_ok) {
+                        $result_message = "Control check failed - suppressing transition {$previous_status}->{$current_status}";
+                    } else
                     if ($previous_status === "Offline" && $current_status === "Online") {
                         $result_message = "Ping received, confirming stability ({$count_plus_one_for_readability_in_reports}/10)";
                     } elseif ($previous_status === "Online" && $current_status === "Offline") {
@@ -88,7 +88,6 @@ class PingJob implements ShouldQueue
                     } elseif ($previous_status === "New") {
                          $result_message = "Monitoring new node, detected initial status: {$current_status}";
                     } else {
-                        // Handle edge cases or ongoing confirmation counts
                         $direction = $ping_ip_table_entry->count_direction ?? 'Stable';
                         $result_message = "Status confirmation count {$ping_ip_table_entry->count}, direction {$direction}";
                     }
@@ -96,8 +95,8 @@ class PingJob implements ShouldQueue
                      $result_message = "Status stable: {$current_status}";
                 }
 
-                // Handle confirmation counter logic
-                if ($state_change_needs_confirmation) {
+                // Handle confirmation counter logic (skip any counter/transition work on control failure)
+                if ($state_change_needs_confirmation && !($status_changed && !$control_ok)) {
                     if ($ping_ip_table_entry->count >= 9 && $status_changed) { // Threshold met AND status is different
                         Log::info("Confirmation threshold reached. Finalizing status change.", [
                             'ip' => $ping_ip_table_entry->ip,
@@ -158,8 +157,8 @@ class PingJob implements ShouldQueue
                 }
 
 
-                // Initial status setting for new nodes
-                if ($previous_status === 'New') {
+                // Initial status for new nodes only when control is OK
+                if ($previous_status === 'New' && $control_ok) {
                    $ping_ip_table_entry->last_email_status = $current_status;
                    $ping_ip_table_entry->count = 0; // Start fresh
                    $ping_ip_table_entry->count_direction = null;
@@ -190,7 +189,7 @@ class PingJob implements ShouldQueue
              $this->fail($e); // Mark job as failed
         }
 
-        Log::info("PingJob finished.", ['ip' => $this->ping_ip_table_row->ip]);
+        Log::debug("PingJob finish", ['ip' => $this->ping_ip_table_row->ip]);
     }
 
     /**
@@ -201,81 +200,70 @@ class PingJob implements ShouldQueue
      * @param int $timeout
      * @return int Milliseconds or 0 if offline/timeout.
      */
-    private function pingHost(string $host, int $timeout = 1): int
+    private function pingHost(string $host, int $timeout = 2): int
     {
-        // Lazily instantiate oscheck only if needed within the method
-        $osChecker = new oscheck;
-        $command = $osChecker->isLinux()
-            ? sprintf('ping -n -w %d -c 1 %s', $timeout, escapeshellarg($host))
-            : sprintf('/sbin/ping -n -t %d -c 1 %s', $timeout, escapeshellarg($host)); // Assuming macOS/BSD otherwise
+        $deadline = (int) env('PING_DEADLINE_SECONDS', 2);
+        $count = (int) env('PING_COUNT', 2);
+        $attempts = (int) env('PING_ATTEMPTS', 2);
+        $isLinux = (PHP_OS === 'Linux');
+        $command = $isLinux
+            ? sprintf('ping -n -w %d -c %d %s', $deadline, $count, escapeshellarg($host))
+            : sprintf('/sbin/ping -n -t %d -c %d %s', $deadline, $count, escapeshellarg($host));
 
         Log::debug("Executing ping command", ['command' => $command]);
 
-        // Try pinging up to 2 times if the first fails immediately (e.g., command error)
-        for ($k = 0; $k < 2; $k++) {
+        for ($k = 0; $k < max(1, $attempts); $k++) {
             $output = [];
             $exitCode = -1; // Initialize with error state
             exec($command, $output, $exitCode);
 
             Log::debug("Ping execution result", ['exitCode' => $exitCode, 'output' => $output]);
 
-            // Handle successful ping (exit code 0)
-            if ($exitCode === 0) {
-                // Resolve hostname to IP(s) for comparison (if host is not already an IP)
-                $resolved_ips = [];
-                if (!filter_var($host, FILTER_VALIDATE_IP)) {
-                    // Host is a hostname, resolve all IPs
-                    $dns_records = dns_get_record($host, DNS_A);
-                    if ($dns_records) {
-                        foreach ($dns_records as $record) {
-                            $resolved_ips[] = $record['ip'];
-                        }
+            // If any valid reply is present in output, accept it regardless of exit code.
+            // Resolve hostname to IP(s) for validation (if host is not already an IP)
+            $resolved_ips = [];
+            if (!filter_var($host, FILTER_VALIDATE_IP)) {
+                $dns_records = @dns_get_record($host, DNS_A);
+                if ($dns_records) {
+                    foreach ($dns_records as $record) {
+                        if (!empty($record['ip'])) $resolved_ips[] = $record['ip'];
                     }
-                    // Fallback to gethostbyname if dns_get_record fails
-                    if (empty($resolved_ips)) {
-                        $resolved_ip = gethostbyname($host);
-                        if ($resolved_ip !== $host) {
-                            $resolved_ips[] = $resolved_ip;
-                        }
-                    }
-                } else {
-                    // Host is already an IP
-                    $resolved_ips[] = $host;
                 }
-                
-                foreach ($output as $line) {
-                    // Check if this line contains a response with timing info
-                    if (preg_match('/(\d+) bytes from ([0-9.]+):.*time[=<]([0-9.]+)\s*ms/', $line, $matches)) {
-                        $response_ip = $matches[2];
-                        $latency = (int)ceil(floatval($matches[3]));
-                        
-                        // Accept responses from target IP or resolved IPs
-                        if (in_array($response_ip, $resolved_ips)) {
-                            Log::debug("Ping latency parsed from valid IP", [
-                                'target' => $host, 
-                                'response_ip' => $response_ip,
-                                'ms' => $latency
-                            ]);
-                            return $latency;
-                        } else {
-                            Log::warning("Ping response from unrelated IP - ignoring", [
-                                'target' => $host,
-                                'resolved_ips' => $resolved_ips,
-                                'response_ip' => $response_ip,
-                                'ms' => $latency,
-                                'line' => $line
-                            ]);
-                        }
+                if (empty($resolved_ips)) {
+                    $resolved_ip = @gethostbyname($host);
+                    if ($resolved_ip !== $host) {
+                        $resolved_ips[] = $resolved_ip;
                     }
-                    // Fallback: check for time pattern without IP validation
-                    elseif (preg_match('/time[=<]([0-9.]+)\s*ms/', $line, $matches)) {
-                        Log::warning("Ping time found without IP validation - treating as failed", [
+                }
+            } else {
+                $resolved_ips[] = $host;
+            }
+
+            foreach ($output as $line) {
+                if (preg_match('/(\d+) bytes from ([0-9.]+):.*time[=<]([0-9.]+)\s*ms/', $line, $matches)) {
+                    $response_ip = $matches[2];
+                    $latency = (int)ceil((float)$matches[3]);
+                    if (in_array($response_ip, $resolved_ips, true)) {
+                        Log::debug("Ping latency parsed from valid IP", [
                             'target' => $host,
-                            'line' => $line,
-                            'parsed_ms' => $matches[1]
+                            'response_ip' => $response_ip,
+                            'ms' => $latency
+                        ]);
+                        return $latency;
+                    } else {
+                        Log::warning("Ping response from unrelated IP - ignoring", [
+                            'target' => $host,
+                            'resolved_ips' => $resolved_ips,
+                            'response_ip' => $response_ip,
+                            'ms' => $latency,
+                            'line' => $line
                         ]);
                     }
                 }
+            }
+
+            // Successful exit but no parsable line
+            if ($exitCode === 0) {
                  // If loop finishes without finding valid response from resolved IPs
                  Log::debug("No valid ping response from target or resolved IPs", [
                      'target' => $host,
@@ -283,25 +271,13 @@ class PingJob implements ShouldQueue
                  ]);
                  break;
             } elseif ($exitCode === 1) {
-                // Log exit code 1 output for debugging false positives
-                Log::warning("Ping exit code 1 - logging output for analysis", [
+                Log::warning("Ping exit code 1 - retrying if attempts remain", [
                     'ip' => $host,
                     'exitCode' => $exitCode,
                     'output' => $output,
                     'attempt' => $k+1
                 ]);
-                // Check if output contains timing info that might cause false positives
-                foreach ($output as $line) {
-                    if (preg_match('/time[=<]([0-9.]+)\s*ms/', $line, $matches)) {
-                        Log::error("FALSE POSITIVE DETECTED: Exit code 1 but found timing info", [
-                            'ip' => $host,
-                            'line' => $line,
-                            'parsed_ms' => $matches[1],
-                            'full_output' => $output
-                        ]);
-                    }
-                }
-                break; // Don't retry and don't parse timing from failed pings
+                continue;
             } else {
                 Log::warning("Ping command execution failed.", ['ip' => $host, 'exitCode' => $exitCode, 'attempt' => $k+1]);
                 // Optionally sleep briefly before retrying if exit code indicates a potentially transient issue

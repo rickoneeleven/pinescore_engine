@@ -1,5 +1,6 @@
-# pinescore_engine - Laravel Framework 7.18.0
-Laraverl project that handles the nuts and bolts of the ping engine for pinescore
+DATETIME of last agent review: 01/10/2025 13:31 BST
+# pinescore_engine - Laravel Framework 7.30.3
+Laravel project that handles the nuts and bolts of the ping engine for pinescore
 
 Min system req's
 - Absolute min of 2GB of RAM for redis/horizon engine to work, and you'll probably need the overcommit tweak below
@@ -60,7 +61,7 @@ sudo apt-get install supervisor
 vim /etc/supervisor/conf.d/horizon.conf
 [program:horizon]
 process_name=%(program_name)s
-command=/bin/sh -c 'sleep 1 && php /home/loopnova/domains/cribengine.pinescore.com/public_html/artisan horizon'
+command=/bin/sh -c 'sleep 1 && /usr/bin/php7.4 /home/pinescore/domains/engine.pinescore.com/public_html/artisan horizon'
 autostart=true
 autorestart=true
 user=pinescore
@@ -125,3 +126,14 @@ If the `traceRoute` queue balloons because old runs re-enqueued duplicates (e.g.
    - `redis-cli --scan --pattern 'pinescore_database_trace-route-lock:*' | head` followed by `redis-cli TTL <lock>` → TTL ~604800 confirms new 7-day lock in place
 
 We lifted `TracerouteJob::LOCK_TTL_SECONDS` to 604800 seconds so nodes stay locked until their job completes or times out, preventing fresh duplicates after this reset.
+
+########################################################################
+
+## Ping Behavior Configuration
+
+Tune basic ping behavior via environment variables:
+- `PING_DEADLINE_SECONDS` total seconds given to the `ping` command (Linux `-w`). Default 2.
+- `PING_COUNT` echo requests per `ping` invocation (Linux `-c`). Default 2.
+- `PING_ATTEMPTS` how many times to invoke `ping` if a parseable reply is not seen. Default 2.
+
+When a node's status appears to change, an ICMP control check to `CONTROL_IP_1` then `CONTROL_IP_2` runs. If both fail, the engine suppresses any state transition or alerts for that iteration but still records the attempt and updates `last_ran`.
