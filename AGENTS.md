@@ -1,4 +1,3 @@
-
 # AGENTS.md v3
 
 The following guidelines govern how agents work in this repository. They apply to all code and documentation within this directory tree.
