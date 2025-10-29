@@ -26,7 +26,7 @@ class Kernel extends ConsoleKernel
     {
         $schedule->command('command:PingCommand')->everyMinute();
         $schedule->call('App\Http\Controllers\traceRoute@go')->hourly();
-        $schedule->command('logs:clear')->daily();
+        // removed: logs:clear (deleted active file led to orphaned inode)
         $schedule->call('App\Http\Controllers\truncateDB@itsShowtime')->daily();
         $schedule->command('command:StoreMonthlyGroupScores')->monthly();
         $schedule->command('horizon:update-metrics')->everyMinute();
