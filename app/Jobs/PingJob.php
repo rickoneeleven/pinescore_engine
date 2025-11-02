@@ -104,10 +104,16 @@ class PingJob implements ShouldQueue
                             'final_status' => $current_status
                         ]);
 
-                        // --- Alerting Logic ---
+                        // Commit the state change first so email cannot block flips
+                        $ping_ip_table_entry->last_email_status = $current_status;
+                        $ping_ip_table_entry->count = 0;
+                        $ping_ip_table_entry->count_direction = null; // Reset direction
+                        $result_message = "Status confirmed: {$current_status}"; // Update message for DB log
+                        $ping_ip_table_entry->save();
+
+                        // --- Alerting Logic (non-blocking) ---
                         $associated_alerts = alerts::where('ping_ip_id', $ping_ip_table_entry->id)->get();
                         foreach ($associated_alerts as $alerts_row) {
-                            // *** START: Added check for disabled_until ***
                             if ($alerts_row->disabled_until && Carbon::parse($alerts_row->disabled_until)->isFuture()) {
                                 Log::info("Skipping notification (temporarily disabled).", [
                                     'ip' => $ping_ip_table_entry->ip,
@@ -115,31 +121,35 @@ class PingJob implements ShouldQueue
                                     'alert_rule_id' => $alerts_row->id,
                                     'disabled_until' => $alerts_row->disabled_until
                                 ]);
-                                continue; // Skip to the next alert rule
+                                continue;
                             }
-                            // *** END: Added check for disabled_until ***
 
-                            $data = [
-                                'alerts_row' => $alerts_row, // Contains email, etc.
-                                'ping_ip_table_row' => $ping_ip_table_entry, // Contains node info like 'note'
-                                'now_state' => $current_status
+                            $mailData = [
+                                'note' => $ping_ip_table_entry->note ?? ('Node ' . $ping_ip_table_entry->ip),
+                                'now_state' => $current_status,
                             ];
 
-                            Log::info("Dispatching status change notification.", [
-                                'ip' => $ping_ip_table_entry->ip,
-                                'email' => $alerts_row->email,
-                                'alert_rule_id' => $alerts_row->id,
-                                'new_status' => $current_status
-                            ]);
-                            Notification::route('mail', $alerts_row->email)->notify(new NodeChangeAlert($data));
+                            try {
+                                Log::info("Queueing status change notification.", [
+                                    'ip' => $ping_ip_table_entry->ip,
+                                    'email' => $alerts_row->email,
+                                    'alert_rule_id' => $alerts_row->id,
+                                    'new_status' => $current_status
+                                ]);
+                                Notification::route('mail', $alerts_row->email)->notify(new NodeChangeAlert($mailData));
+                            } catch (\Throwable $notifyEx) {
+                                Log::error("Failed to enqueue notification.", [
+                                    'ip' => $ping_ip_table_entry->ip,
+                                    'email' => $alerts_row->email,
+                                    'alert_rule_id' => $alerts_row->id,
+                                    'error' => $notifyEx->getMessage()
+                                ]);
+                                // Do not rethrow; state is already committed
+                            }
                         }
                         // --- End Alerting Logic ---
 
-                        // Update state after successful confirmation and notification attempt
-                        $ping_ip_table_entry->last_email_status = $current_status;
-                        $ping_ip_table_entry->count = 0;
-                        $ping_ip_table_entry->count_direction = null; // Reset direction
-                        $result_message = "Status confirmed: {$current_status}"; // Update message for DB log
+                        // Record result for this iteration (first time only below)
 
                     } elseif ($status_changed) { // Status changed, but threshold not met yet
                         $ping_ip_table_entry->count++;
@@ -166,7 +176,7 @@ class PingJob implements ShouldQueue
                 }
 
 
-                // Save ping_ip_table changes for this specific entry
+                // Save ping_ip_table changes for this specific entry (ensure last_ran always updated)
                 $ping_ip_table_entry->last_ran = now(); // Use Laravel helper for consistency
                 $ping_ip_table_entry->save();
 

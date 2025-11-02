@@ -7,7 +7,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class NodeChangeAlert extends Notification
+class NodeChangeAlert extends Notification implements ShouldQueue
 {
     use Queueable;
     public $array_passed;
@@ -43,9 +43,8 @@ class NodeChangeAlert extends Notification
     public function toMail($notifiable)
     {
         return (new MailMessage)
-        //->subject($this->array_passed['now_state']. "[".$this->array_passed['ping_ip_table_row']['pinescore']."] -> ".$this->array_passed['ping_ip_table_row']['note'])
-        ->subject($this->array_passed['now_state']. " -> ".$this->array_passed['ping_ip_table_row']['note'])
-        ->line($this->array_passed['ping_ip_table_row']['note']." is now ".$this->array_passed['now_state'])
+        ->subject($this->array_passed['now_state']. ' -> ' . $this->array_passed['note'])
+        ->line($this->array_passed['note'] . ' is now ' . $this->array_passed['now_state'])
         ->action('Open Dashboard', url('/'));
     }
 
