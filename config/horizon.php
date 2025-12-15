@@ -100,7 +100,7 @@ return [
 
     'trim' => [
     'recent' => 60,
-    'pending' => 60,
+    'pending' => 1,
     'completed' => 60,
     'recent_failed' => 1440,
     'failed' => 1440,
@@ -166,21 +166,35 @@ return [
 
     'environments' => [
         'production' => [
-            'supervisor-1' => [
+            'supervisor-ping' => [
                 'connection' => 'redis',
-                'queue'      => ['default','traceRoute'],
+                'queue'      => ['default'],
                 'balance'    => 'simple',
                 'processes'  => 10,
+                'tries'      => 1,
+            ],
+            'supervisor-traceroute' => [
+                'connection' => 'redis',
+                'queue'      => ['traceRoute'],
+                'balance'    => 'simple',
+                'processes'  => 4,
                 'tries'      => 1,
             ],
         ],
 
         'local' => [
-            'supervisor-1' => [
+            'supervisor-ping' => [
                 'connection' => 'redis',
-                'queue'      => ['default','traceRoute'],
+                'queue'      => ['default'],
                 'balance'    => 'simple',
                 'processes'  => 10,
+                'tries'      => 1,
+            ],
+            'supervisor-traceroute' => [
+                'connection' => 'redis',
+                'queue'      => ['traceRoute'],
+                'balance'    => 'simple',
+                'processes'  => 4,
                 'tries'      => 1,
             ],
         ],
