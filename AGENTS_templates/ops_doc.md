@@ -1,10 +1,17 @@
-# Ops Doc Template v1.1
+# Ops Doc Template v2.0
 
-## Why This Matters
+## Purpose
 
-All ops/ docs are ingested at session start. Verbose docs waste context on details the agent may never need. Keep docs as concise indexes that make the agent *aware* of components and *where to look* for details.
+All ops/ docs are **ingested at session start**. They exist for agent awareness - telling the agent WHAT exists and WHERE to find it. The agent reads source files on-demand when actually working on a component.
 
-The agent reads source files on-demand when actually working on a component.
+README tells humans HOW to deploy. ops/ tells agents WHAT exists.
+
+## Constraints
+
+- **Max 40 lines per doc** - ingested at startup, so brevity matters
+- **Awareness, not instruction** - agent needs to know what exists, not step-by-step guides
+- **Pointers, not content** - list file paths, let agent read them when needed
+- **Commands must be copy-paste ready** - no placeholders like `<your-path>`
 
 ## Template
 
@@ -21,114 +28,131 @@ One sentence describing what this component does.
 - `path/to/other.ts` - brief role
 
 ## Related
-- `ops/OTHER_DOC.md` - if cross-cutting dependency
-- `ops/systemd/service-name.service` - if applicable
+- `ops/OTHER_DOC.md` - cross-cutting dependency
+- External service/config location
 
-## Agent Service Commands
-- any commands that will help the agent do stuff related to operations in this doc
+## Agent Commands
+```bash
+# Copy-paste ready commands for this component
+command --with --real --args
+```
 
 ## Notes
-- Optional 1-2 bullets only if critical context not obvious from code
+- Only critical context not obvious from code (1-3 bullets max)
 - Delete this section if empty
 
 ## Intentional Behavior
-- Document non-obvious design decisions that future agents might question
+- Non-obvious design decisions that future agents might question
 - Prevents agents from "fixing" things that aren't broken
 - Delete this section if empty
 ```
 
 ---
 
-## Good Example: SYSTEMD_USER.md
+## Good Example
 
 ```markdown
-# Systemd Services
+# Horizon Queue Management
 
-DATETIME of last agent review: 06 Dec 2025 14:00 (Europe/London)
+DATETIME of last agent review: 15 Dec 2025 14:00 (Europe/London)
 
 ## Purpose
-Rootless systemd user services for backend, ingestion, and enrichment workers.
+Laravel Horizon manages ping and traceroute job queues via Redis, running under Supervisor.
 
 ## Key Files
-- `ops/systemd/polyscore-backend.service` - API server
-- `ops/systemd/polyscore-ingest.service` + `.timer` - trades/prices/comment backfill
-- `ops/systemd/polyscore-prune.service` + `.timer` - data cleanup
-- `ops/systemd/polyscore-commenter-age.service` + `.timer` - trade age lookup
-- `ops/systemd/polyscore-commenter-pnl.service` + `.timer` - PnL enrichment
+- `config/horizon.php` - queue supervisors config
+- `app/Jobs/PingJob.php` - ping execution
+- `app/Jobs/TracerouteJob.php` - traceroute execution
 
-## Agent Service Commands
-User services require environment variables to access the systemd bus:
-\`\`\`bash
-XDG_RUNTIME_DIR=/run/user/1001 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1001/bus systemctl --user restart polyscore-backend
-XDG_RUNTIME_DIR=/run/user/1001 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1001/bus systemctl --user status polyscore-backend
-\`\`\`
+## Related
+- `/etc/supervisor/conf.d/horizon.conf` - Supervisor unit
+- Redis on localhost:6379
 
-## Notes
-- `polyscore-comments` runs as system service (not user) at `/etc/systemd/system/`
-- Requires `loginctl enable-linger $USER`
-- User ID 1001 = loopnova
-
-## Intentional Behavior
-Position Logging Every Run - The trade monitor logs every active position on every cron run (per minute). This is intentional - not a bug or oversight. The logs serve as a health check / heartbeat, allowing quick verification that positions are being actively monitored by browsing the activity log.
+## Agent Commands
+```bash
+php artisan horizon:terminate
+sudo supervisorctl restart horizon
+sudo supervisorctl status horizon
+tail -f storage/logs/horizon.log
 ```
 
-**Why it works:** Agent knows what services exist, where unit files live, and how to restart them. Reads `.service` files when implementing changes.
+## Notes
+- Dashboard at `/horizon` (web middleware only)
+- Traceroute needs CAP_NET_RAW on `/usr/sbin/traceroute`
+
+## Intentional Behavior
+- Separate queues for ping/traceroute prevent hourly traceroute backlog from delaying per-minute pings
+```
+
+**32 lines. Agent knows what exists, where to look, and has ready commands.**
+
 ---
 
-## Bad Example: SYSTEMD_USER.md (verbose)
+## Bad Example
 
 ```markdown
-# PolyScore Systemd User Services Guide
+# Horizon Queue Management Guide
 
-DATETIME of last agent review: 04 Dec 2025 19:35 (Europe/London)
+DATETIME of last agent review: 15 Dec 2025 14:00 (Europe/London)
 
-This project is designed to run as a standard user (rootless) using systemd user services.
-
-## Services Overview
-
-| Service | Type | Schedule | Purpose |
-|---------|------|----------|---------|
-| polyscore-backend | continuous | always | Fastify API server |
-| polyscore-comments* | continuous | always | Primary comment ingestion via WebSocket |
-| polyscore-ingest | timer | every 1 min | Backup comment backfill, trades, prices |
-...
-
-## Prerequisites
-
-1.  **Enable Linger:** This allows user services to run even when you are not logged in.
-    ```bash
-    sudo loginctl enable-linger $USER
-    ```
-
-2.  **Verify Runtime Directory:**
-    Ensure `XDG_RUNTIME_DIR` is available...
+## Overview
+Laravel Horizon is a queue manager that provides a beautiful dashboard and code-driven configuration for your Laravel powered Redis queues. It allows you to easily monitor key metrics of your queue system such as job throughput, runtime, and job failures.
 
 ## Installation
+1. First, install Horizon via Composer:
+   composer require laravel/horizon
 
-1.  **Create Config Directory:**
-    ```bash
-    mkdir -p ~/.config/systemd/user
-    ```
+2. Publish the configuration:
+   php artisan horizon:publish
 
-2.  **Link Unit Files:**
-    Link the provided service files to your configuration directory.
-    ```bash
-    ln -sf $PWD/ops/systemd/polyscore-backend.service ~/.config/systemd/user/
-    ...
+3. Configure your supervisors in config/horizon.php...
+
+[continues for 100+ lines with full setup guide]
 ```
 
 **Why it fails:**
-- 107 lines ingested at startup
-- Full bash commands the agent can read from the `.service` files themselves
-- Installation instructions belong in the service file comments or a one-time setup script
-- Table duplicates info already in file names
+- 100+ lines ingested at startup wastes context
+- Installation instructions belong in README
+- Overview paragraph adds no value for agents
+- Full guide duplicates README content
 
 ---
 
-## Principles
+## What Goes Where
 
-1. **Awareness over instruction** - Agent needs to know what exists, not how to use it
-2. **Pointers over content** - List key file paths, let agent read them when needed
-3. **One sentence purpose** - If you need a paragraph, the component is too complex or you're over-explaining
-4. **Notes are exceptions** - Only include if critical context that cannot be inferred from code
-5. **100 lines max** - If longer, you're writing a guide not an index
+| Content Type | Location |
+|--------------|----------|
+| First-time setup, installation | README |
+| Service config examples | README |
+| Troubleshooting procedures | README |
+| Component file locations | ops/ |
+| Agent-ready commands | ops/ |
+| Design decisions | ops/ |
+
+---
+
+## Section Rules
+
+### Purpose
+- One sentence only
+- What it does, not how it works
+
+### Key Files
+- 3-8 files max
+- Only files agent would need to read/modify
+- Include brief role (3-5 words)
+
+### Agent Commands
+- Must work as-is (no placeholders)
+- Common operations only
+- 4-6 commands max
+
+### Notes
+- Only include if critical and not obvious from code
+- Max 3 bullets
+- Delete section if nothing qualifies
+
+### Intentional Behavior
+- Design decisions that look like bugs/oversights
+- Prevents agents from "fixing" correct behavior
+- Delete section if nothing qualifies

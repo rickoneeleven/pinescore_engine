@@ -1,4 +1,4 @@
-# AGENTS.md v12.4
+# AGENTS.md v12.5
 
 ## Session Bootstrap (Mandatory)
 Execute immediately at session start. Do not wait for user input.
@@ -11,30 +11,36 @@ Execute immediately at session start. Do not wait for user input.
 		`curl -L -o AGENTS_templates/ops_doc_testing.md https://notes.pinescore.com/note/note_6937215203a8a8.59822398.raw`
 		`curl -L -o AGENTS_templates/reed_me.md https://notes.pinescore.com/note/note_68ff55fd1533e2.81140451.raw`
 		`curl -L -o AGENTS_templates/recreation_process.md https://notes.pinescore.com/note/note_6933f026c6a668.10234364.raw`
-- Output: "Bootstrapping: fetched latest AGENTS.md. Scanning documentation (README.md and ops/*.md) for integrity checks."
+- Output: "Bootstrapping: fetched latest AGENTS.md. Scanning documentation for integrity checks."
 ### Discovery & Awareness
-- Check root `README.md` exists (single root README only, no subfolders).
+- Check root `README.md` exists (single root README only, no subfolders). Check timestamp only, do NOT ingest.
 - Locate `ops/*.md` files.
 - MUST explicitly list all files found in `ops/` folder in initial response.
-- Ingest: Read the content of every file found in ops/ into the context window.
+- Ingest: Read the content of every file found in ops/ into the context window (NOT README - it's for humans).
 ### Integrity Check (30-Day Rule)
-- Check header `DATETIME of last agent review:` in all found files.
-- < 30 days: Ingest context. Do NOT validate.
+- Check header `DATETIME of last agent review:` in README.md and all ops/*.md files.
+- < 30 days: Proceed. Only ops/ docs are ingested.
 - > 30 days or Missing: **BLOCK** user task. Trigger Validation Procedure immediately.
 ### Handover
-- Provide post project overview, `ops/` file list. Check for a follow_up.md in project root, if there is one, remind the user there are some pending actions to be complete, and last line should be local AGENTS.md version number (make it obvious/highlight, capitals whatever, if version number was updated during curl). Proceed with user request only after validation.
+- Provide project overview, `ops/` file list. Check for a follow_up.md in project root, if there is one, remind the user there are some pending actions to be complete, and last line should be local AGENTS.md version number (make it obvious/highlight, capitals whatever, if version number was updated during curl). Proceed with user request only after validation.
 
 ## Validation Procedure
 Trigger: Stale (>30 days) or missing timestamp in `README.md` or `ops/*.md`.
 ### Recreation (Not Patching)
 - Follow process in `AGENTS_templates/recreation_process.md`.
 - Read existing docs for context, then delete and rebuild from scratch.
-- Use `AGENTS_templates/reed_me.md` for README.md.
-- Use `AGENTS_templates/ops_doc.md` for each ops/ file.
+- Use `AGENTS_templates/reed_me.md` for README.md. **Preserve operational knowledge** - setup procedures, config examples, troubleshooting.
+- Use `AGENTS_templates/ops_doc.md` for each ops/ file (max 40 lines each).
 - Use `AGENTS_templates/ops_doc_testing.md` for testing-related ops/ files (e.g., ops/TESTING.md, ops/E2E.md).
-- Crawl codebase for current state (package.json, src/, .env.example, ops/systemd/).
+- Crawl codebase for current state (package.json, src/, .env.example, service configs).
 ### Attest
 - Update header: `DATETIME of last agent review: DD MMM YYYY HH:MM (Europe/London)` on all recreated files.
+
+## Documentation Philosophy
+- **README** = HOW to deploy (for humans, detailed setup, NOT ingested)
+- **ops/** = WHAT exists (for agents, awareness/pointers, ingested at startup)
+- README can be ~175 lines with section budgets
+- ops/ docs must be max 40 lines each
 
 ## Testing Protocol (Mandatory)
 **Run tests after every new feature.** This rule persists through all ops/ audits and recreations.

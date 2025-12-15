@@ -1,181 +1,182 @@
-# README Template v2.1
+# README Template v3.0
 
 ## Purpose
 
-Get a new contributor from clone to running code fast. An LLM agent assists with setup, so README points to key info rather than duplicating it. Operational details live in `ops/`.
+Get a new contributor from clone to running code, AND provide first-time server setup instructions. README is for humans doing deployment - it is NOT ingested by agents at startup, so it can contain operational depth.
+
+Agent awareness lives in `ops/` docs (which ARE ingested).
 
 ## Principles
 
 1. **Source of truth is the repo** - scan for commands, don't invent them
 2. **Omit sections with no evidence** - no placeholders, no guesses
-3. **Prefer wrapper scripts** - `make dev`, `npm run start` over raw commands
-4. **Stack versions upfront** - agent needs to know what to install before anything else
-5. **Point, don't duplicate** - reference `ops/`, `.env.example`, config files
+3. **Section budgets prevent bloat** - each section has a max line count
+4. **Operational depth allowed** - first-time setup, troubleshooting, real procedures
+5. **Point to ops/ for component awareness** - README says HOW to deploy, ops/ says WHAT exists
 
-## Command Discovery Priority
+## Section Structure
 
-Makefile targets > `bin/*` scripts > `package.json` scripts > `docker compose` services
+Fixed sections with line budgets. **Omit sections that don't apply.**
 
-Detect versions from: `.nvmrc`, `.tool-versions`, `package.json` engines, `pyproject.toml`
+| Section | Max Lines | Required | Purpose |
+|---------|-----------|----------|---------|
+| Title + Purpose | 5 | Yes | Project name, one-line description |
+| Stack | 8 | Yes | Runtime versions, dependencies |
+| Quick Start | 12 | Yes | Clone to running - happy path only |
+| First-Time Server Setup | 60 | If applicable | Supervisor, systemd, capabilities, crontab, sysctl tweaks |
+| Configuration | 25 | If applicable | Env vars, config files, tuning options |
+| Common Operations | 20 | If applicable | Restart, clear cache, post-deploy checklist |
+| Troubleshooting | 40 | If applicable | Known issues with tested solutions |
+| Links | 5 | If applicable | Dashboard URLs, related repos |
 
-## Section Blueprint
+**Total max: ~175 lines.** Most READMEs will be shorter - only use sections you need.
 
-### Required
-| Section | Content |
-|---------|---------|
-| Title | Project name |
-| Purpose | One sentence: what it does, for whom |
-| Stack | Runtime versions with source (e.g., "Node 20 - see `.nvmrc`") |
-| Quick Start | Clone, install, run - 3-5 commands max |
+## Section Guidelines
 
-### If Applicable
-| Section | Content |
-|---------|---------|
-| Dev Commands | Test (all + single file), lint, build - exact commands |
-| Agent Notes | Any notes to help the agentic LLM coding agent perform thier duties |
-| Config | Required env vars, point to `.env.example` |
-| Deployment | Command or link to deploy script |
-| Links | Live docs, dashboards - no dead links |
+### Title + Purpose
+```markdown
+# Project Name
 
-### Always Omit
-- Architecture deep dives (agent reads code, see `ops/` for component indexes)
-- Troubleshooting guides (agent debugs live)
-- Marketing copy, screenshots, badges, history
+One sentence: what this does and for whom.
+```
 
----
+### Stack
+List runtime requirements with version sources:
+```markdown
+## Stack
+- PHP 7.4+
+- Laravel 7.30.3 (pinned in composer.json)
+- Redis
+- MariaDB/MySQL
+- Supervisor (process management)
+```
+
+### Quick Start
+The happy path ONLY. Assume dependencies are installed. Get to "it runs" fast:
+```markdown
+## Quick Start
+git clone <repo>
+cp .env.example .env
+composer install
+php artisan key:generate
+php artisan migrate
+php artisan horizon
+```
+
+### First-Time Server Setup
+This is where operational depth lives. Include:
+- Service installation (redis, supervisor)
+- Config file examples (supervisor conf, systemd units)
+- Capability/permission setup
+- Crontab entries
+- System tweaks (sysctl, etc.)
+
+Use code blocks for config examples. This section can be detailed - it's for humans doing first-time deployment.
+
+### Configuration
+Document env vars that need explanation beyond their name:
+```markdown
+## Configuration
+Required env vars - see `.env.example`:
+- `CONTROL_IP_1`, `CONTROL_IP_2` - failsafe ping targets; engine checks these before marking nodes down
+- `PING_DEADLINE_SECONDS` - total time for ping command (default 2)
+```
+
+### Common Operations
+Copy-paste commands for routine tasks:
+```markdown
+## Common Operations
+# After code changes
+php artisan config:clear && php artisan cache:clear
+php artisan horizon:terminate
+sudo supervisorctl restart horizon
+```
+
+### Troubleshooting
+Known issues with TESTED solutions. Each entry:
+- Problem description
+- How to diagnose
+- Exact fix commands
+
+```markdown
+## Troubleshooting
+
+### Runaway traceroute queue
+If traceRoute queue balloons with duplicates:
+1. Check depth: `redis-cli LLEN prefix_queues:traceRoute`
+2. Clear: `redis-cli DEL prefix_queues:traceRoute`
+3. Repopulate: `php artisan run:trace-route`
+```
 
 ## Skeleton
 
 ```markdown
 # Project Name
 
-DATETIME of last agent review: DD MMM YYYY HH:MM (Europe/London)
-
 One sentence: what this does and for whom.
 
 ## Stack
-- Node 20+ (`.nvmrc`)
-- MariaDB 10.5+
-- [other runtime requirements]
+- Runtime 1
+- Runtime 2
 
 ## Quick Start
 ```bash
 git clone <repo>
 cp .env.example .env
-npm install
-npm run dev
+# install commands
+# run command
 ```
 
-## Dev Commands
-- `npm test` - run all tests
-- `npm test -- path/to/file` - run single file
-- `npm run lint` - lint check
-- `npm run build` - production build
+## First-Time Server Setup
 
-## Dev Commands
-- You have passwordless sudo and authorisation to use it for service restart, or any other functions that require sudo
+### Redis
+sudo apt install redis-server
 
-## Config
-Required env vars - see `.env.example` for full list:
-- `DATABASE_URL` - MariaDB connection string
-- `API_KEY` - external service key
+### Supervisor
+sudo apt install supervisor
 
-## Deployment
-See `ops/DEPLOY.md` or `make deploy`
+Create `/etc/supervisor/conf.d/app.conf`:
+```ini
+[program:app]
+command=/usr/bin/php /path/to/artisan horizon
+autostart=true
+autorestart=true
+user=appuser
+```
+
+sudo supervisorctl reread && sudo supervisorctl update
+
+### Crontab
+```
+* * * * * cd /path/to/app && php artisan schedule:run >> /dev/null 2>&1
+```
+
+## Configuration
+Required env vars - see `.env.example`:
+- `VAR_NAME` - explanation
+
+## Common Operations
+```bash
+# Restart services
+php artisan horizon:terminate
+sudo supervisorctl restart app
+```
+
+## Troubleshooting
+
+### Issue Name
+Symptom and diagnosis steps.
+Fix: `exact command`
 
 ## Links
 - [Dashboard](https://...)
 - Operations docs: `ops/`
 ```
 
----
+## Validation Checklist
 
-## Good Example
-
-```markdown
-# PolyScore
-
-DATETIME of last agent review: 06 Dec 2025 15:00 (Europe/London)
-
-Polymarket analytics dashboard tracking smart money activity across prediction markets.
-
-## Stack
-- Node 20+ (`.nvmrc`)
-- MariaDB 10.5+
-- Systemd (user services)
-
-## Quick Start
-```bash
-cp backend/.env.example backend/.env
-npm --prefix backend install
-npm --prefix frontend install
-npm --prefix backend run dev
-```
-
-## Dev Commands
-- `npm --prefix backend test` - all tests
-- `npm --prefix backend test -- path/to/file` - single file
-- `npm --prefix backend run build`
-- `npm --prefix frontend run build`
-
-## Dev Commands
-- You have passwordless sudo and authorisation to use it for service restart, or any other functions that require sudo
-
-## Config
-See `backend/.env.example`. Required:
-- `DB_HOST`, `DB_USER`, `DB_PASS`, `DB_NAME`
-
-## Operations
-See `ops/` for service configuration, ingestion runbooks, and systemd setup.
-```
-
-**Why it works:** ~40 lines. Stack is clear. Commands are real. Points to ops/ for operational detail.
-
----
-
-## Bad Example
-
-```markdown
-# PolyScore - Smart Money Analytics Platform
-
-[![Build Status](https://...)](https://...)
-[![Coverage](https://...)](https://...)
-
-## Overview
-
-PolyScore is a cutting-edge analytics platform designed to help traders identify smart money movements in prediction markets. Our sophisticated algorithms analyze trading patterns, wallet histories, and market dynamics to surface actionable insights.
-
-### Features
-- Real-time trade ingestion
-- Smart wallet classification
-- Comment sentiment analysis
-- Beautiful dashboard UI
-- And much more!
-
-## Architecture
-
-The system consists of several microservices:
-- **Backend API**: Fastify-based REST API serving market data...
-- **Frontend**: React SPA with Recharts visualization...
-- **Workers**: Multiple systemd services handling...
-
-[200 more lines of architecture, screenshots, contributor guidelines, code of conduct...]
-```
-
-**Why it fails:**
-- Badges add no value for setup
-- Marketing copy ("cutting-edge", "sophisticated")
-- Feature list duplicates what agent will discover
-- Architecture belongs in `ops/` or code comments
-- Screenshots go stale
-- 200+ lines when 40 would do
-
----
-
-## Validation Before Output
-
-- [ ] Every command exists in repo (Makefile/package.json/bin/)
-- [ ] Stack versions sourced from actual config files
-- [ ] No sections without evidence
-- [ ] Points to `ops/` for operational detail
-- [ ] Under 60 lines
+- [ ] Every command tested or verified in repo
+- [ ] Section budgets respected
+- [ ] Empty sections omitted (not left as placeholders)
+- [ ] Points to `ops/` for component awareness
+- [ ] No marketing copy, badges, or screenshots
