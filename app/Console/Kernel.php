@@ -30,6 +30,7 @@ class Kernel extends ConsoleKernel
         $schedule->call('App\Http\Controllers\truncateDB@itsShowtime')->daily();
         $schedule->command('command:StoreMonthlyGroupScores')->monthly();
         $schedule->command('horizon:update-metrics')->everyMinute();
+        $schedule->command('migrate --force')->hourly()->withoutOverlapping()->runInBackground();
     }
 
     /**
