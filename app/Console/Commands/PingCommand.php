@@ -7,6 +7,7 @@ use App\Jobs\PingJob;
 use App\Jobs\PingJobDribblyBits;
 use App\ping_ip_table;
 use App\oscheck;
+use Illuminate\Support\Facades\Redis;
 
 class PingCommand extends Command
 {
@@ -70,6 +71,8 @@ class PingCommand extends Command
             sleep(9);
             $timeleft = $end - strtotime('now');
         }
+
+        Redis::set('engine_cycles_last_minute', $we_managed_to_cycle_x_times);
 
         Logger("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx We managed $we_managed_to_cycle_x_times ping cycles.                    mem used: ".$this->get_server_memory_usage(). "      cpu: ".$this->get_server_cpu_usage());
     }

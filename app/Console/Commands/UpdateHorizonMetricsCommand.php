@@ -7,6 +7,7 @@ use Laravel\Horizon\Contracts\MetricsRepository;
 use Laravel\Horizon\WaitTimeCalculator;
 use Laravel\Horizon\Contracts\JobRepository;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Redis;
 
 class UpdateHorizonMetricsCommand extends Command
 {
@@ -42,6 +43,9 @@ class UpdateHorizonMetricsCommand extends Command
         $engineStatus = $jobsPerMinute > 0 ? 'active' : 'inactive';
         $this->line("• Engine status: {$engineStatus}");
 
+        $cyclesPerMinute = (int) Redis::get('engine_cycles_last_minute') ?? 0;
+        $this->line("• Cycles per minute: {$cyclesPerMinute}");
+
         if ($this->option('debug')) {
             $this->warn("\nDetailed metrics information:");
             $this->table(
@@ -50,6 +54,7 @@ class UpdateHorizonMetricsCommand extends Command
                     ['jobs_per_minute', $jobsPerMinute],
                     ['failed_jobs_past_day', $failedJobs],
                     ['engine_status', $engineStatus],
+                    ['cycles_per_minute', $cyclesPerMinute],
                     ['jobs_past_hour', '0 (not implemented)']
                 ]
             );
@@ -60,6 +65,7 @@ class UpdateHorizonMetricsCommand extends Command
             'jobs_per_minute' => $jobsPerMinute,
             'failed_jobs_past_day' => $failedJobs,
             'engine_status' => $engineStatus,
+            'cycles_per_minute' => $cyclesPerMinute,
             'jobs_past_hour' => 0
         ];
 
