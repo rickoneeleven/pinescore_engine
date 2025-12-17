@@ -34,3 +34,4 @@ redis-cli LLEN pinescore_database_queues:traceRoute
 - TracerouteJob uses 7-day lock (LOCK_TTL_SECONDS=604800) to prevent duplicate jobs
 - Control IP check (CONTROL_IP_1/2) runs before any node state change to detect engine-side outages
 - PingCommand stores cycles_per_minute in Redis; healthy is 5-6, low indicates queue drain issues
+- Index on ping_ip_table.ip is critical for performance (migration 2025_12_17_131217)
