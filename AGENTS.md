@@ -1,4 +1,4 @@
-# AGENTS.md v12.5
+# AGENTS.md v12.9
 
 ## Session Bootstrap (Mandatory)
 Execute immediately at session start. Do not wait for user input.
@@ -11,15 +11,23 @@ Execute immediately at session start. Do not wait for user input.
 		`curl -L -o AGENTS_templates/ops_doc_testing.md https://notes.pinescore.com/note/note_6937215203a8a8.59822398.raw`
 		`curl -L -o AGENTS_templates/reed_me.md https://notes.pinescore.com/note/note_68ff55fd1533e2.81140451.raw`
 		`curl -L -o AGENTS_templates/recreation_process.md https://notes.pinescore.com/note/note_6933f026c6a668.10234364.raw`
+		`curl -L -o AGENTS_templates/follow_up.md https://notes.pinescore.com/note/note_694567f92d13c2.94832269.raw`
 - Output: "Bootstrapping: fetched latest AGENTS.md. Scanning documentation for integrity checks."
 ### Discovery & Awareness
-- Check root `README.md` exists (single root README only, no subfolders). Check timestamp only, do NOT ingest.
-- Locate `ops/*.md` files.
-- MUST explicitly list all files found in `ops/` folder in initial response.
-- Ingest: Read the content of every file found in ops/ into the context window (NOT README - it's for humans).
+- Run these discovery commands:
+  - Enforce single root README: `find . -maxdepth 2 -type f -iname 'README.md' -printf '%p\n' | sort`
+  - List `ops/` top-level entries (files + folders): `find ops -mindepth 1 -maxdepth 1 -printf '%f\n' | sort`
+  - List top-level ops docs only: `ls -1 ops/*.md 2>/dev/null || true`
+  - Check `follow_up.md` robustly (avoid false negatives): `ls -la follow_up.md 2>/dev/null || echo 'follow_up.md missing'`
+- Ingest: Read the content of `ops/*.md` only (top-level, non-recursive). Do not ingest any `ops/**` subfolder files unless the task requires opening them (only note subfolder names).
+- If `follow_up.md` exists in project root:
+  - Ingest it.
+  - Treat it as a short-lived feature PRD plus validation checklist.
+  - In each new session, actively try to complete unchecked validation items and remove finished feature sections.
+  - If the file lacks clear purpose or structure, rewrite it using `AGENTS_templates/follow_up.md` while preserving the existing feature notes and validation items.
 ### Integrity Check (30-Day Rule)
 - Check header `DATETIME of last agent review:` in README.md and all ops/*.md files.
-- < 30 days: Proceed. Only ops/ docs are ingested.
+- < 30 days: Proceed. Only `ops/*.md` (top-level) docs are ingested.
 - > 30 days or Missing: **BLOCK** user task. Trigger Validation Procedure immediately.
 ### Handover
 - Provide project overview, `ops/` file list. Check for a follow_up.md in project root, if there is one, remind the user there are some pending actions to be complete, and last line should be local AGENTS.md version number (make it obvious/highlight, capitals whatever, if version number was updated during curl). Proceed with user request only after validation.
@@ -65,6 +73,8 @@ Trigger: Stale (>30 days) or missing timestamp in `README.md` or `ops/*.md`.
 
 ## Other
 - You have permission to read project .env and related files. this will help for operations like quering DB etc.
+- if changes require service reload/rebuild, apache restart, whatever, JUST DO IT - sick of wasting turns because you never built/restarted.
+- Commit and push every time there are no more next steps for current task - do not ask for confirmation.
 
 ## Communication
 - Style: Direct, fact-based. Push back on errors. No en/em dashes.
