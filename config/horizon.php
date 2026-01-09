@@ -85,6 +85,7 @@ return [
 
     'waits' => [
         'redis:default' => 60,
+        'redis:mail' => 60,
     ],
 
     /*
@@ -180,6 +181,13 @@ return [
                 'processes'  => 4,
                 'tries'      => 1,
             ],
+            'supervisor-mail' => [
+                'connection' => 'redis',
+                'queue'      => ['mail'],
+                'balance'    => 'simple',
+                'processes'  => 1,
+                'tries'      => 3,
+            ],
         ],
 
         'local' => [
@@ -196,6 +204,13 @@ return [
                 'balance'    => 'simple',
                 'processes'  => 4,
                 'tries'      => 1,
+            ],
+            'supervisor-mail' => [
+                'connection' => 'redis',
+                'queue'      => ['mail'],
+                'balance'    => 'simple',
+                'processes'  => 1,
+                'tries'      => 3,
             ],
         ],
     ],

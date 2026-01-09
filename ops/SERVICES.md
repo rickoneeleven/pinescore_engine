@@ -1,6 +1,6 @@
 # Services
 
-DATETIME of last agent review: 15 Dec 2025 16:40 (Europe/London)
+DATETIME of last agent review: 09 Jan 2026 11:47 (Europe/London)
 
 ## Purpose
 
@@ -11,6 +11,7 @@ Laravel Horizon manages queue workers via Redis, running under Supervisor.
 - `config/horizon.php` - queue supervisor configuration
 - `/etc/supervisor/conf.d/horizon.conf` - Supervisor unit file
 - `storage/logs/horizon.log` - Horizon process logs
+- Root cron: `sudo crontab -l` (daily Horizon restart)
 
 ## Related
 
@@ -30,9 +31,10 @@ tail -f storage/logs/horizon.log
 ## Notes
 
 - Dashboard at `/horizon` (web middleware only)
-- Horizon runs as single supervisor process managing both ping and traceroute workers
+- Horizon is expected to have exactly one master + supervisors (ping, traceroute, mail) on this host
 
 ## Intentional Behavior
 
-- `startsecs=10` and `startretries=5` in supervisor conf prevent FATAL after quick restarts
+- Root cron restarts Horizon daily at `04:29`; Supervisor kills child workers with the master (`stopasgroup=true`, `killasgroup=true`)
+- `startsecs=10` and `startretries=5` prevent Supervisor from wedging into `FATAL` during restarts
 - `stopwaitsecs=3600` allows long-running traceroute jobs to complete on shutdown

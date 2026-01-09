@@ -20,6 +20,7 @@ class NodeChangeAlert extends Notification implements ShouldQueue
     public function __construct($array_passed)
     {
         $this->array_passed = $array_passed;
+        $this->onQueue('mail');
         //Logger($this->array_passed);
     }
 

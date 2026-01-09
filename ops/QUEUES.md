@@ -1,10 +1,10 @@
 # Queue Jobs
 
-DATETIME of last agent review: 17 Dec 2025 16:45 (Europe/London)
+DATETIME of last agent review: 09 Jan 2026 11:47 (Europe/London)
 
 ## Purpose
 
-Ping and traceroute jobs execute ICMP checks, update node status, and trigger notifications.
+Ping and traceroute jobs execute ICMP checks, update node status, and trigger notifications (mail queue).
 
 ## Key Files
 
@@ -24,13 +24,15 @@ Ping and traceroute jobs execute ICMP checks, update node status, and trigger no
 
 ```bash
 php artisan run:trace-route
-redis-cli LLEN pinescore_database_queues:default
-redis-cli LLEN pinescore_database_queues:traceRoute
+php artisan horizon:supervisors
+PREFIX="$(php -r 'require \"vendor/autoload.php\"; $app=require \"bootstrap/app.php\"; $app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap(); echo config(\"database.redis.options.prefix\");')"
+redis-cli LLEN "${PREFIX}queues:default" && redis-cli LLEN "${PREFIX}queues:traceRoute" && redis-cli LLEN "${PREFIX}queues:mail"
 ```
 
 ## Intentional Behavior
 
 - Separate queues (default/traceRoute) prevent hourly traceroutes from delaying per-minute pings
+- Mail notifications run on dedicated queue (`mail`) to cap SMTP concurrency without slowing pings
 - TracerouteJob uses 7-day lock (LOCK_TTL_SECONDS=604800) to prevent duplicate jobs
 - Control IP check (CONTROL_IP_1/2) runs before any node state change to detect engine-side outages
 - PingCommand stores cycles_per_minute in Redis; healthy is 5-6, low indicates queue drain issues
